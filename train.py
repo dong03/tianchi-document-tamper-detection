@@ -26,6 +26,7 @@ from transforms import create_train_transforms,create_val_transforms
 from torch.utils.data import DataLoader
 from utils import Normalize_3D, UnNormalize_3D, read_annotations, Progbar
 import pdb
+import cv2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_set', default ='/data/dongchengbo/dataset/ffc23/genfake_train.txt', help='path to train dataset')
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     decoder = Decoder(3)
     act_loss_fn = ActivationLoss()
     rect_loss_fn = ReconstructionLoss()
-    seg_loss_fn = SegmentationLoss()
+    seg_loss_fn = ReconstructionLoss()#SegmentationLoss()
 
     optimizer_encoder = Adam(encoder.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999), weight_decay=opt.weight_decay, eps=opt.eps)
     optimizer_decoder = Adam(decoder.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999), weight_decay=opt.weight_decay, eps=opt.eps)
@@ -103,15 +104,16 @@ if __name__ == "__main__":
 
     transform_tns = transforms.Compose([
         transforms.ToTensor(),
+        transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
     ])
 
     transform_pil = transforms.Compose([
         transforms.ToPILImage(),
     ])
     
-    transform_norm = Normalize_3D((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+    transform_norm = Normalize_3D((0.5,0.5,0.5), (0.5,0.5,0.5))
 
-    transform_unnorm = UnNormalize_3D((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+    transform_unnorm = UnNormalize_3D((0.5,0.5,0.5), (0.5,0.5,0.5))
 
     data_train = DeepFakeClassifierDataset(
         annotations = read_annotations(opt.train_set),
@@ -167,11 +169,11 @@ if __name__ == "__main__":
             labels_data = lab.float()
 
             rgb = img.reshape((-1,img.size(-3),img.size(-2), img.size(-1)))
-            mask = mask.reshape((-1, mask.size(-2), mask.size(-1)))
+            mask = mask.reshape((-1,mask.size(-3), mask.size(-2), mask.size(-1)))
 
-            mask[mask >= 0.5] = 1.0
-            mask[mask < 0.5] = 0.0
-            mask = mask.long()
+            # mask[mask >= 0.5] = 1.0
+            # mask[mask < 0.5] = 0.0
+            # mask = mask.long()
 
             if opt.gpu_id >= 0:
                 rgb = rgb.cuda(opt.gpu_id)
@@ -265,10 +267,10 @@ if __name__ == "__main__":
             fft_label = lab.numpy().astype(np.float)
             labels_data = lab.float()
             rgb = img.reshape((-1,img.size(-3),img.size(-2), img.size(-1)))
-            mask = mask.reshape((-1, mask.size(-2), mask.size(-1)))
-            mask[mask >= 0.5] = 1.0
-            mask[mask < 0.5] = 0.0
-            mask = mask.long()
+            mask = mask.reshape((-1,mask.size(-3), mask.size(-2), mask.size(-1)))
+            # mask[mask >= 0] = 1.0
+            # mask[mask < 0] = -1.0
+            # mask = mask.long()
 
             if opt.gpu_id >= 0:
                 rgb = rgb.cuda(opt.gpu_id)
@@ -346,23 +348,21 @@ if __name__ == "__main__":
         text_writer.flush()
 
         ########################################################################
-        pdb.set_trace()
-        real_img = transform_tns(Image.open(os.path.join('test_img', 'real.jpg'))).unsqueeze(0)[:,:,:,0:256]
-        real_mask = transform_tns(Image.open(os.path.join('test_img', 'real.jpg'))).unsqueeze(0)[:,:,:,256:512]
-        fake_img = transform_tns(Image.open(os.path.join('test_img', 'fake.jpg'))).unsqueeze(0)[:,:,:,0:256]
-        fake_mask = transform_tns(Image.open(os.path.join('test_img', 'fake.jpg'))).unsqueeze(0)[:,:,:,256:512]
+        real_img = cv2.imread(os.path.join('test_img', 'real.png'))
+        real_img = cv2.resize(real_img, (256, 256))
+        real_img = cv2.cvtColor(real_img,cv2.COLOR_BGR2RGB)
+        real_img = transform_tns(real_img).unsqueeze(0)
+
+        fake_img = cv2.imread(os.path.join('test_img', 'fake.png'))
+        fake_img = cv2.resize(fake_img, (256, 256))
+        fake_img = cv2.cvtColor(fake_img,cv2.COLOR_BGR2RGB)
+        fake_img = transform_tns(fake_img).unsqueeze(0)
+        #real_mask = transform_tns(Image.open(os.path.join('test_img', 'real.jpg'))).unsqueeze(0)[:,:,:,256:512]
+        #fake_img = transform_tns(cv2.cvtColor(cv2.resize(cv2.imread(os.path.join('test_img', 'fake.png')),(256,256))),cv2.COLOR_BGR2RGB).unsqueeze(0)
+        # transform_tns(Image.open(os.path.join('test_img', 'fake.jpg'))).unsqueeze(0)
+        #fake_mask = transform_tns(Image.open(os.path.join('test_img', 'fake.jpg'))).unsqueeze(0)[:,:,:,256:512]
 
         rgb = torch.cat((real_img, fake_img), dim=0)
-        rgb = transform_norm(rgb)
-
-        real_mask[real_mask >= 0.5] = 1.0
-        real_mask[real_mask < 0.5] = 0.0
-        real_mask = real_mask.long()
-
-        fake_mask[fake_mask >= 0.5] = 1.0
-        fake_mask[fake_mask < 0.5] = 0.0
-        fake_mask = fake_mask.long()
-
         # real = 1, fake = 0
         labels_data = torch.FloatTensor([1,0])
 
@@ -389,15 +389,14 @@ if __name__ == "__main__":
 
         seg, rect = decoder(latent)
 
-        seg = seg[:,1,:,:].detach().cpu()
-        seg[seg >= 0.5] = 1.0
-        seg[seg < 0.5] = 0.0
+        #3seg = seg[:,1,:,:].detach().cpu()
+        # seg[seg >= 0] = 255
+        # seg[seg < 0] = 0
 
         rect = transform_unnorm(rect).detach().cpu()
-        pdb.set_trace()
+        seg = transform_unnorm(seg).detach().cpu()
         real_seg = transform_pil(seg[0])
         fake_seg = transform_pil(seg[1])
-
         real_img = transform_pil(rect[0])
         fake_img = transform_pil(rect[1])
 

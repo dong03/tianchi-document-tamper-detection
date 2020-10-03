@@ -104,8 +104,8 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
 
-            nn.ConvTranspose2d(8, 2, kernel_size=3, stride=1, padding=1, output_padding=0),
-            nn.Softmax(dim=1)
+            nn.ConvTranspose2d(8, 1, kernel_size=3, stride=1, padding=1, output_padding=0),
+            nn.Tanh()
         )
 
         self.decoder = nn.Sequential(
