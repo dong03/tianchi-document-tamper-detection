@@ -138,8 +138,8 @@ def direct_val(imgs,size):
     #img 输入为RGB顺序
     imgs = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in imgs]
     transforms = create_val_transforms(size)
-    normalize = {"mean": [0.485, 0.456, 0.406],
-                 "std": [0.229, 0.224, 0.225]}
+    normalize = {"mean": [0.5, 0.5, 0.5],
+                 "std": [0.5, 0.5, 0.5]}
     imgs = [img_to_tensor(transforms(image=each)['image'],normalize).unsqueeze(0) for each in imgs]
     imgs = torch.cat(imgs)
 

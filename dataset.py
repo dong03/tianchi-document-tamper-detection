@@ -61,6 +61,7 @@ class DeepFakeClassifierDataset(Dataset):
             self.data = [annotations]
             print("all: %d"%len(self.data[0]))
         self.lost = []
+
     def load_sample(self,img_path,label):
         try:
             image = cv2.imread(img_path, cv2.IMREAD_COLOR)
@@ -86,12 +87,12 @@ class DeepFakeClassifierDataset(Dataset):
                 image = rot90(image, rotation)
                 mask = rot90(mask,rotation)
             image = img_to_tensor(image, self.normalize)
-            mask = img_to_tensor(mask,self.normalize)
-
+            mask = img_to_tensor(mask)#,self.normalize)
+            mask = (1.0 * mask > 0.5).type(torch.LongTensor)
             return image,(torch.sum(mask,axis=0) / 3.0).unsqueeze(0),rotation
         except:
             self.lost.append(img_path)
-            return torch.randn((3,self.size,self.size)),torch.randn((1,self.size,self.size)),0
+            return torch.randn((3,self.size,self.size)),torch.zeros((1,self.size,self.size)),0
 
 
     def __getitem__(self, index: int):
