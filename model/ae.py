@@ -252,6 +252,12 @@ class AEModel(nn.Module):
             nn.Tanh()
         )
 
+        self.out_fc = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Linear(1,1),
+            nn.Sigmoid()
+        )
+
         self.segmenter.apply(self.weights_init)
         self.decoder.apply(self.weights_init)
         self.encoder.apply(self.weights_init)
@@ -272,38 +278,16 @@ class AEModel(nn.Module):
 
         one_abs = torch.abs(latent[:, 1]).view(latent.shape[0], -1)
         one = one_abs.mean(dim=1)
-        y = torch.ones(2)
-        y = y.index_select(dim=0, index=1 - labels_data.data.long())
-        latent = (latent * y[:, :, None, None, None]).reshape(-1, 128, 16, 16)
+        # y = torch.eye(2).to(x.device)
+        # y = y.index_select(dim=0, index=1 - labels_data.data.long())
+        # latent = (latent * y[:, :, None, None, None]).reshape(-1, 128, 16, 16)
+        latent = latent.reshape(-1,128,16,16)
         latent = self.shared(latent)
         seg = self.segmenter(latent)
         rect = self.decoder(latent)
+        pred = self.out_fc(seg)
 
-        return zero, one, seg, rect
-class ActivationLoss(nn.Module):
-    def __init__(self):
-        super(ActivationLoss, self).__init__()
+        return zero, one, seg, rect, pred
 
-    def forward(self, zero, one, labels):
 
-        loss_act = torch.abs(one - labels.data) + torch.abs(zero - (1.0 - labels.data))
-        return 1 / labels.shape[0] * loss_act.sum()
-        
-class ReconstructionLoss(nn.Module):
-    def __init__(self):
-        super(ReconstructionLoss, self).__init__()
-        self.loss = nn.MSELoss()
 
-    def forward(self, reconstruction, groundtruth):
-
-        return self.loss(reconstruction, groundtruth.data)
-
-class SegmentationLoss(nn.Module):
-    def __init__(self):
-        super(SegmentationLoss, self).__init__()
-        self.loss = nn.BCELoss()
-
-    def forward(self, segment, groundtruth):
-
-        return self.loss(segment.view(segment.shape[0],-1),
-            groundtruth.data.view(groundtruth.shape[0],-1))
