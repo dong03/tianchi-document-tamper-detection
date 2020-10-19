@@ -16,7 +16,7 @@ default_config = {
     "learning_rate": 1e-3,
     "schedule": {
         "type": "poly",
-        "mode": "epoch",
+        "mode": "step",
         "epochs": 40,
         "params": {"max_iter": 50, "cycle": 1, "power": 0.8}
     }

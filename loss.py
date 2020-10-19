@@ -24,7 +24,7 @@ class SegmentationLoss(nn.Module):
         self.loss = nn.BCELoss()
 
     def forward(self, segment, groundtruth,real_ix,fake_ix):
-        return 1.4 * self.loss(segment.view(segment.shape[0], -1)[real_ix],
+        return 1.3 * self.loss(segment.view(segment.shape[0], -1)[real_ix],
                          groundtruth.data.view(groundtruth.shape[0], -1)[real_ix]) + \
                self.loss(segment.view(segment.shape[0], -1)[fake_ix],
                          groundtruth.data.view(groundtruth.shape[0], -1)[fake_ix])
@@ -56,5 +56,6 @@ class SegFocalLoss(nn.Module):
     def forward(self, pt, target,real_ix,fake_ix):
         pt = pt.reshape(pt.shape[0],-1)
         target = target.reshape(target.shape[0],-1)
-        return 10 * self.loss(pt[real_ix],target[real_ix]) + self.loss(pt[fake_ix],target[fake_ix])
+        return 1.0 * (torch.sum(real_ix) > 0) * 5 * self.loss_func(pt[real_ix],target[real_ix]) + \
+               1.0 * (torch.sum(fake_ix) > 0) * self.loss_func(pt[fake_ix],target[fake_ix])
 
