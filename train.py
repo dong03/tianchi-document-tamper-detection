@@ -23,10 +23,10 @@ from schedulers import create_optimizer,default_config
 from tensorboardX import SummaryWriter
 import shutil
 parser = argparse.ArgumentParser()
-parser.add_argument('--train_set', default ='/data/dongchengbo/dataset/ffc23/genfake_train.txt', help='path to train dataset')
-parser.add_argument('--val_set', default ='/data/dongchengbo/dataset/ffc23/genfake_test.txt', help='path to validation dataset')
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
-parser.add_argument('--batchSize', type=int, default=320, help='input batch size')
+parser.add_argument('--train_set', default ='/data/dongchengbo/dataset/ff_withmask_train_.txt', help='path to train dataset')
+parser.add_argument('--val_set', default ='/data/dongchengbo/dataset/ff_withmask_val_.txt', help='path to validation dataset')
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
+parser.add_argument('--batchSize', type=int, default=224, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
 parser.add_argument('--niter', type=int, default=1000, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.001, help='learning rate, default=0.01')
@@ -100,7 +100,11 @@ def run_iter(model, data_loader,epoch, max_iters, writer=None, optimizer=None,sc
         loss_rect = loss_rect * opt.gamma
         loss_rect_data = loss_rect.item()
 
-        loss_total = loss_act + loss_seg + loss_rect
+        loss_total = loss_seg + loss_rect
+        #loss_total = loss_act + loss_seg + loss_rect
+        if torch.sum(torch.isnan(loss_total)) or torch.sum(torch.isinf(loss_total)):
+            pdb.set_trace()
+
         if optimizer is not None:
             loss_total.backward()
         progbar.add(numm, values=[('epoch', epoch),
@@ -119,7 +123,7 @@ def run_iter(model, data_loader,epoch, max_iters, writer=None, optimizer=None,sc
             board_num += 1
         if optimizer is not None:
             optimizer.step()
-            #scheduler.step(ix + epoch * max_iters)
+            scheduler.step(ix + epoch * max_iters)
 
         output_pred = np.zeros((rgb.shape[0]), dtype=np.float)
 
@@ -141,8 +145,8 @@ def run_iter(model, data_loader,epoch, max_iters, writer=None, optimizer=None,sc
     loss_act_sum /= count
     loss_seg_sum /= count
     loss_rect_sum /= count
-    if scheduler is not None:
-        scheduler.step(epoch)
+    # if scheduler is not None:
+    #     scheduler.step(epoch)
     return  loss_act_sum,loss_seg_sum,loss_rect_sum,acc
 
 opt = parser.parse_args()
@@ -156,8 +160,9 @@ if __name__ == "__main__":
     os.makedirs(model_savedir,exist_ok=True)
     writer_dir = 'output/%s'%opt.prefix
     if not os.path.exists(opt.resume):
-        if os.path.exists(writer_dir):
-            shutil.rmtree(writer_dir)
+        pass
+    if os.path.exists(writer_dir):
+        shutil.rmtree(writer_dir)
     os.makedirs(writer_dir, exist_ok=True)
     writer = SummaryWriter(logdir=writer_dir)
     board_num = 0
@@ -183,20 +188,20 @@ if __name__ == "__main__":
 
     transform_tns = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
 
     transform_pil = transforms.Compose([
         transforms.ToPILImage(),
     ])
     
-    transform_norm = Normalize_3D((0.5,0.5,0.5), (0.5,0.5,0.5))
+    transform_norm = Normalize_3D((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 
-    transform_unnorm = UnNormalize_3D((0.5,0.5,0.5), (0.5,0.5,0.5))
+    transform_unnorm = UnNormalize_3D((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 
     data_val = DeepFakeClassifierDataset(
-        annotations=read_annotations(opt.val_set),
-        #annotations=random.sample(read_annotations(opt.train_set), opt.batchSize * 2),
+        #annotations=read_annotations(opt.val_set),
+        annotations=random.sample(read_annotations(opt.val_set), opt.batchSize * 2),
         mode="val",
         balance=False,
         transforms=create_val_transforms(256))
@@ -205,13 +210,13 @@ if __name__ == "__main__":
         data_val,
         batch_size=opt.batchSize,
         num_workers=int(opt.workers),
-        shuffle=False,
-        pin_memory=False,
+        shuffle=True,
+        pin_memory=True,
         collate_fn=collate_function)
 
     data_train = DeepFakeClassifierDataset(
-        annotations=read_annotations(opt.train_set),
-        #annotations=random.sample(read_annotations(opt.train_set), opt.batchSize * 8),
+        #annotations=read_annotations(opt.train_set),
+        annotations=random.sample(read_annotations(opt.train_set), len(read_annotations(opt.train_set))//4),
         mode="train",
         balance=True,
         hardcore=True,
@@ -223,9 +228,11 @@ if __name__ == "__main__":
         batch_size=opt.batchSize,
         num_workers=int(opt.workers),
         shuffle=True,
-        pin_memory=False,
+        pin_memory=True,
         collate_fn=collate_function)
-    default_config["schedule"]['params']['max_iter'] = len(data_train) // opt.batchSize
+
+    print("train_set size: %d val_set size: %d"%(len(data_train),len(data_val)))
+    default_config["schedule"]['params']['max_iter'] = len(data_train) // (4 *opt.batchSize)
     optimizer, scheduler = create_optimizer(model,default_config)
     max_iters = default_config["schedule"]['params']['max_iter']
 
@@ -251,18 +258,16 @@ if __name__ == "__main__":
             start_epoch = 100
 
     for epoch in range(start_epoch, opt.niter+1):
-
-
         loss_act_train,loss_seg_train,loss_rect_train,acc_train = run_iter(model, train_data_loader, epoch, max_iters, writer=writer, optimizer=optimizer,scheduler=scheduler)
         ########################################################################
         # do checkpointing & validation
-        if epoch % 10 == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_dict':model.state_dict(),
-                'optim_dict':optimizer.state_dict(),
-                'board_num':board_num
-            }, os.path.join(model_savedir,'model_%d.pt'%epoch))
+
+        torch.save({
+            'epoch': epoch,
+            'model_dict':model.state_dict(),
+            'optim_dict':optimizer.state_dict(),
+            'board_num':board_num
+        }, os.path.join(model_savedir,'model_%d.pt'%epoch))
 
         model.eval()
         with torch.no_grad():

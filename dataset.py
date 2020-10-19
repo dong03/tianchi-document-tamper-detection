@@ -158,8 +158,8 @@ class DeepFakeClassifierDataset(Dataset):
                  annotations,
                  label_smoothing=0.01,
                  hardcore=True,
-                 normalize={"mean": [0.5, 0.5, 0.5],
-                            "std": [0.5, 0.5, 0.5]},
+                 normalize={"mean": [0.485, 0.456, 0.406],
+                            "std": [0.229, 0.224, 0.225]},
                  rotation=False,
                  mode="train",
                  balance=True,
@@ -193,37 +193,35 @@ class DeepFakeClassifierDataset(Dataset):
             image = cv2.imread(img_path, cv2.IMREAD_COLOR)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             if label:
-                mask_path = "%s_mask.png"%(img_path.split('.')[0])
+                mask_path = img_path.replace('.png','_mask.png')
                 if os.path.exists(mask_path):
                     mask = cv2.imread(mask_path,0)
+                    mask = 4 * mask * (255-mask)
+                    mask = 255 * (mask >0).astype(np.uint8)
                     mask = np.stack((mask,) * 3, axis=-1)
                 else:
                     mask = np.zeros_like(image).astype(np.uint8)
             else:
                 mask = np.zeros_like(image).astype(np.uint8)
 
-            if self.mode == "train" and self.hardcore and not self.rotation:
-                landmark_path = img_path.split('.')[0] + '.json'
-                # 0.7的概率随机去除landmarks，done
-                if os.path.exists(landmark_path) and random.random() < 0.75:
-                    landmarks = self.parse_json(landmark_path)
-                    image = remove_landmark(image, landmarks)
-                # 0.2的概率去除整张脸
-                elif random.random() < 0.25:
-                    image = blackout_convex_hull(image)
+            # if self.mode == "train" and self.hardcore and not self.rotation:
+            #     landmark_path = img_path.split('.')[0] + '.json'
+            #     # 0.7的概率随机去除landmarks，done
+            #     if os.path.exists(landmark_path) and random.random() < 0.75:
+            #         landmarks = self.parse_json(landmark_path)
+            #         image = remove_landmark(image, landmarks)
+            #     # 0.2的概率去除整张脸
+            #     elif random.random() < 0.25:
+            #         image = blackout_convex_hull(image)
             rotation = 0
             if self.transforms:
                 data = self.transforms(image=image,mask=mask)
                 image = data["image"]
                 mask = data['mask']
 
-            if self.mode == "train" and self.rotation:
-                rotation = random.randint(0, 3)
-                image = rot90(image, rotation)
-                mask = rot90(mask,rotation)
             image = img_to_tensor(image, self.normalize)
-            mask = img_to_tensor(mask)#,self.normalize)
-            mask = (1.0 * mask > 0.5).type(torch.LongTensor)
+            mask = img_to_tensor(mask)
+            #mask = (1.0 * mask > 0.5).type(torch.LongTensor)
             return image,(torch.sum(mask,axis=0) / 3.0).unsqueeze(0),rotation
         except:
             self.lost.append(img_path)
