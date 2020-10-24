@@ -104,8 +104,8 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
 
-            nn.ConvTranspose2d(8, 1, kernel_size=3, stride=1, padding=1, output_padding=0),
-            nn.Sigmoid()
+            nn.ConvTranspose2d(8, 2, kernel_size=3, stride=1, padding=1, output_padding=0),
+            nn.Softmax(dim=1)
         )
 
         self.decoder = nn.Sequential(
@@ -147,7 +147,6 @@ class Decoder(nn.Module):
         rect = self.decoder(latent)
 
         return seg, rect
-
 
 class AEModel(nn.Module):
     def __init__(self, depth=3):

@@ -29,13 +29,13 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--batchSize', type=int, default=224, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
 parser.add_argument('--niter', type=int, default=1000, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.001, help='learning rate, default=0.01')
+parser.add_argument('--lr', type=float, default=5e-5, help='learning rate, default=0.01')
 parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for adam. default=0.5')
 parser.add_argument('--weight_decay', type=float, default=0.0005, help='weight decay. default=0.005')
 parser.add_argument('--gamma', type=float, default=1, help='weight decay. default=5')
 parser.add_argument('--eps', type=float, default=1e-07, help='epsilon. default=eps=1e-07')
 parser.add_argument('--gpu_id', type=int, default=2, help='GPU ID')
-parser.add_argument('--resume', type=str, default='none', help="choose a epochs to resume from (0 to train from scratch)")
+parser.add_argument('--resume', type=str, default='/data/dongchengbo/code/ClassNSeg/checkpoints/full/ft_seg_bce/model_68.pt', help="choose a epochs to resume from (0 to train from scratch)")
 parser.add_argument('--outf', default='checkpoints/full', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--prefix',type=str,required=True)
@@ -99,8 +99,8 @@ def run_iter(model, data_loader,epoch, max_iters, writer=None, optimizer=None,sc
         loss_rect = rect_loss_fn(rect, rgb)
         loss_rect = loss_rect * opt.gamma
         loss_rect_data = loss_rect.item()
-
-        loss_total = loss_seg + loss_rect
+        loss_total = loss_seg
+        #loss_total = loss_seg + loss_rect
         #loss_total = loss_act + loss_seg + loss_rect
         if torch.sum(torch.isnan(loss_total)) or torch.sum(torch.isinf(loss_total)):
             pdb.set_trace()
