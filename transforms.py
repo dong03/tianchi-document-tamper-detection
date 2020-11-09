@@ -6,7 +6,7 @@ from albumentations.augmentations.functional import crop
 from albumentations import Compose, RandomBrightnessContrast, \
     HorizontalFlip, FancyPCA, HueSaturationValue, OneOf, ToGray, \
     ShiftScaleRotate, ImageCompression, PadIfNeeded, GaussNoise, GaussianBlur, \
-    CLAHE, IAASharpen, IAAEmboss
+    CLAHE, IAASharpen, IAAEmboss, Flip
 from albumentations.pytorch.functional import img_to_tensor
 import torch
 
@@ -103,27 +103,19 @@ class RandomSizedCropNonEmptyMaskIfExists(DualTransform):
         return "min_max_height", "height", "width", "w2h_ratio"
 
 
-def create_train_transforms(size=300):
+def create_train_transforms():
     return Compose([
         ImageCompression(quality_lower=60, quality_upper=100, p=0.5),
-        GaussNoise(p=0.1),
-        GaussianBlur(blur_limit=3, p=0.05),
-        HorizontalFlip(),
-        OneOf([
-            IsotropicResize(max_side=size, interpolation_down=cv2.INTER_AREA, interpolation_up=cv2.INTER_CUBIC),
-            IsotropicResize(max_side=size, interpolation_down=cv2.INTER_AREA, interpolation_up=cv2.INTER_LINEAR),
-            IsotropicResize(max_side=size, interpolation_down=cv2.INTER_LINEAR, interpolation_up=cv2.INTER_LINEAR),
-        ], p=1),
-        PadIfNeeded(min_height=size, min_width=size, border_mode=cv2.BORDER_CONSTANT),
-        OneOf([RandomBrightnessContrast(),
-               FancyPCA(),
-               HueSaturationValue(),
-               CLAHE(clip_limit=2),
-               IAASharpen(),
-               IAAEmboss(),
-               ], p=0.7),
-        ToGray(p=0.2),
-        ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=10, border_mode=cv2.BORDER_CONSTANT, p=0.5),
+        # GaussianBlur(blur_limit=3, p=0.2),
+        HorizontalFlip(p=0.3),
+        Flip(p=0.3),
+        # OneOf([RandomBrightnessContrast(),
+        #        FancyPCA(),
+        #        HueSaturationValue(),
+        #        CLAHE(clip_limit=2),
+        #        IAASharpen(),
+        #        IAAEmboss(),
+        #        ], p=0.7),
     ]
     )
 
@@ -134,13 +126,41 @@ def create_val_transforms(size=300):
         PadIfNeeded(min_height=size, min_width=size, border_mode=cv2.BORDER_CONSTANT),
     ])
 
-def direct_val(imgs,size):
-    #img 输入为RGB顺序
-    imgs = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in imgs]
-    transforms = create_val_transforms(size)
-    normalize = {"mean": [0.5, 0.5, 0.5],
-                 "std": [0.5, 0.5, 0.5]}
-    imgs = [img_to_tensor(transforms(image=each)['image'],normalize).unsqueeze(0) for each in imgs]
+
+def direct_val_0(imgs,size):
+    imgs = [cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2RGB),(size,size)) for img in imgs]
+    normalize = {"mean": [0.485, 0.456, 0.406],
+                 "std": [0.229, 0.224, 0.225]}
+    imgs = [img_to_tensor(each,normalize).unsqueeze(0) for each in imgs]
+    imgs = torch.cat(imgs)
+
+    return imgs
+
+
+def direct_val_resize(imgs, resize_type, new_sizes):
+    # imgs = [cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), (size, size)) for img in imgs]
+    normalize = {"mean": [0.485, 0.456, 0.406],
+                 "std": [0.229, 0.224, 0.225]}
+
+    for anchor_i in range(len(imgs)):
+        for j in range(len(imgs[anchor_i])):
+            imgs[anchor_i][j] = cv2.resize(cv2.cvtColor(imgs[anchor_i][j], cv2.COLOR_BGR2RGB),
+                                           new_sizes[resize_type[anchor_i]])
+            imgs[anchor_i][j] = img_to_tensor(imgs[anchor_i][j], normalize).unsqueeze(0)
+        imgs[anchor_i] = torch.cat(imgs[anchor_i])
+    # imgs = [img_to_tensor(each,normalize).unsqueeze(0) for each in imgs]
+    # imgs = torch.cat(imgs)
+
+    return imgs
+
+
+def direct_val(imgs):
+    # imgs = [cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), (size, size)) for img in imgs]
+    normalize = {"mean": [0.485, 0.456, 0.406],
+                 "std": [0.229, 0.224, 0.225]}
+
+    for anchor_i in range(len(imgs)):
+        imgs[anchor_i] = img_to_tensor(cv2.cvtColor(imgs[anchor_i], cv2.COLOR_BGR2RGB), normalize).unsqueeze(0)
     imgs = torch.cat(imgs)
 
     return imgs

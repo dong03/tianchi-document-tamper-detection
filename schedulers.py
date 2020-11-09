@@ -17,8 +17,8 @@ default_config = {
     "schedule": {
         "type": "poly",
         "mode": "step",
-        "epochs": 40,
-        "params": {"max_iter": 50, "cycle": 1, "power": 0.8}
+        "epochs": 1000,
+        "params": {"max_iter": 20, "cycle": 1, "power": 0.8}
     }
 }
 class LRStepScheduler(_LRScheduler):
@@ -65,7 +65,7 @@ class ExponentialLRScheduler(_LRScheduler):
         return [base_lr * self.gamma**self.last_epoch for base_lr in self.base_lrs]
 
 
-def create_optimizer(model, optimizer_config=default_config, master_params=None):
+def create_optimizer(optimizer_config, model, awl = None, master_params=None):
     if optimizer_config.get("classifier_lr", -1) != -1:
         # Separate classifier parameters from all others
         net_params = []
@@ -84,6 +84,11 @@ def create_optimizer(model, optimizer_config=default_config, master_params=None)
     else:
         if master_params:
             params = master_params
+        elif awl is not None:
+            params = [
+                {"params":model.parameters()},
+                {"params":awl.parameters()}
+            ]
         else:
             params = model.parameters()
 
@@ -102,8 +107,6 @@ def create_optimizer(model, optimizer_config=default_config, master_params=None)
     elif optimizer_config["type"] == "Adam":
         optimizer = optim.Adam(params,
                                lr=optimizer_config["learning_rate"],
-                               betas=(0.9, 0.999),
-                               eps=1e-07,
                                weight_decay=optimizer_config["weight_decay"])
     elif optimizer_config["type"] == "FusedAdam":
         optimizer = FusedAdam(params,

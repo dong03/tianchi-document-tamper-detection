@@ -1,0 +1,16 @@
+common:
+    train_set: /data/dongchengbo/dataset/tianchi/patches/train_anchors.pkl
+    val_set: /data/dongchengbo/dataset/tianchi/patches/val_anchors.pkl
+    workers: 16
+    batchSize: 64
+    imageSize: 256
+    lr: 0.001
+    gpu_id: -1
+    resume: none
+    outf: /data/dongchengbo/tianchi_checkpoints
+    th: 0.25
+    remove: False
+    manualSeed: -1
+    niter: 1000
+    model: b0
+    aug: True
