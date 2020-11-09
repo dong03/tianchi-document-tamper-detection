@@ -105,14 +105,26 @@ if __name__ == "__main__":
     else:
         trans = None
 
-    train_root = '/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train'
-    mask_root = train_root.replace('/train', '/train_mask')
-    img_paths = ["%s/%d.jpg" % (train_root, i) for i in range(1, 1201)]
-    mask_paths = ["%s/%d.png" % (mask_root, i) for i in range(1, 1201)]
-    annotation = {"img":img_paths, "mask":mask_paths}
-    val_img_list = ["%s/%d.jpg"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train',i) for i in range(1201,1555)]
-    val_mask_list =["%s/%d.png"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_mask',i) for i in range(1201,1555)]
+    # train_root = '/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train'
+    # mask_root = train_root.replace('/train', '/train_mask')
+    # img_paths = ["%s/%d.jpg" % (train_root, i) for i in range(1, 1201)]
+    # mask_paths = ["%s/%d.png" % (mask_root, i) for i in range(1, 1201)]
+    # annotation = {"img":img_paths, "mask":mask_paths}
+    # val_img_list = ["%s/%d.jpg"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train',i) for i in range(1201,1555)]
+    # val_mask_list =["%s/%d.png"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_mask',i) for i in range(1201,1555)]
     test_img_list = ["%s/%d.jpg"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/test',i) for i in range(1,1501)]
+
+    with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/val_list.txt", "r") as f:
+        val_img_list = f.readlines()
+    with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_list.txt", "r") as f:
+        train_img_list = f.readlines()
+    val_img_list = [each.strip("\n") for each in val_img_list]
+    val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list]
+    train_img_list = [each.strip("\n") for each in train_img_list]
+    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list]
+    print(len(train_img_list))
+    print(len(val_img_list))
+    annotation = {"img": train_img_list, "mask": train_mask_list}
 
     data_train = WholeDataset(
         annotations=annotation,
