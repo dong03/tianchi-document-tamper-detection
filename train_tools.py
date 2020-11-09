@@ -29,8 +29,7 @@ transform_unnorm = UnNormalize_3D((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 
 
 def run_model(model, inputs):
-    small, big = inputs
-    output = model(small, big)
+    output = model(inputs)
     return output
 
 
@@ -46,29 +45,29 @@ def inference_single(fake_img, model, th=0.25, remove=True):
         # inputs = direct_val(inputs)
         outputs = []
         inputs_small = []
-        inputs_big = []
+        # inputs_big = []
 
         for small_index in inputs_small_index:
-            big_index = small2big(small_index, anchors[0])
+            # big_index = small2big(small_index, anchors[0])
             # print(big_index)
             input_small = cut_bbox(padded_img, small_index)
-            input_big = cut_bbox(padded_img, big_index)
+            # input_big = cut_bbox(padded_img, big_index)
             inputs_small.append(input_small)
-            inputs_big.append(input_big)
+            # inputs_big.append(input_big)
 
-            if input_big.shape!=(max_anchors_size,max_anchors_size,3):
-                import pdb
-                pdb.set_trace()
+            # if input_big.shape!=(max_anchors_size,max_anchors_size,3):
+            #     import pdb
+            #     pdb.set_trace()
 
             # print(input_big.shape)
         inputs_small = direct_val(inputs_small).cuda()
-        inputs_big = direct_val(inputs_big).cuda()
+        # inputs_big = direct_val(inputs_big).cuda()
         batch_size = 32
         iter_num = len(inputs_small)//32
         outputs = []
         for i in range(iter_num+1):
             stop = min((i+1)*batch_size, len(inputs_small))
-            outputs_i = run_model(model, (inputs_small[i*batch_size:stop], inputs_big[i*batch_size:stop]))
+            outputs_i = run_model(model, inputs_small[i*batch_size:stop])
             outputs_i = torch.sigmoid(outputs_i)
             outputs_i = outputs_i.detach().cpu()
             outputs += outputs_i
@@ -111,15 +110,15 @@ def run_iter(model, data_loader, epoch, loss_funcs,
         # big_img = big_img.squeeze(0)
         small_img = small_img.reshape((-1,small_img.shape[-3],small_img.shape[-2],small_img.shape[-1]))
         small_mask = small_mask.reshape((-1,small_mask.shape[-3],small_mask.shape[-2],small_mask.shape[-1]))
-        big_img = big_img.reshape((-1,big_img.shape[-3],big_img.shape[-2],big_img.shape[-1]))
+        # big_img = big_img.reshape((-1,big_img.shape[-3],big_img.shape[-2],big_img.shape[-1]))
         lab = lab.reshape(-1).float()
 
         small_img = small_img.cuda()
         small_mask = small_mask.cuda()
-        big_img = big_img.cuda()
+        # big_img = big_img.cuda()
         lab = lab.cuda()
 
-        seg = run_model(model,(small_img,big_img))
+        seg = run_model(model, small_img)
         seg = torch.sigmoid(seg)
 
         fake_ix = lab > 0.5

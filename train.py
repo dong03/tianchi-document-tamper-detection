@@ -85,7 +85,7 @@ if __name__ == "__main__":
     elif 'b3' in opt.prefix:
         model = get_efficientunet_b3(out_channels=1, pretrained=True)
     elif 'res' in opt.prefix:
-        model =ResUnet(out_channels=1)
+        model = ResUnet(out_channels=1)
     else:
         print("must have model_type in prefix(b0/b3")
         sys.exit()
