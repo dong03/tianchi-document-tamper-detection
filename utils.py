@@ -19,6 +19,7 @@ anchors = [(256, 256), (128, 128)]
 types = ["256_256", "128_128"]
 max_anchors_size = 256
 min_anchors_size = 128
+stride = 4
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
 logger = logging.getLogger(__file__)
@@ -68,16 +69,18 @@ def small2big(sub_anchor, big_box_size):  # big_box (256, 256)
 
 
 def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_anchors_size)//2):
+    global stride
     np.seterr(divide='ignore', invalid='ignore')
     # ori_h, ori_w = img.shape[:2]
     if pad:
         img = pad_img(img, ps)
     new_h, new_w = img.shape[:2]
     patches = []
-    for i in range(2 * ((new_h-shift) // ps) - 1):
-        for j in range(2 * ((new_w-shift) // ps) - 1):
-            # sub = padded_img[i*ps//2:i*ps//2 + ps,j*ps//2:j*ps//2 + ps]
-            patches.append([shift+i*ps//2, shift+j*ps//2, shift+i*ps//2 + ps, shift+j*ps//2 + ps])
+
+    for i in range(stride * ((new_h-shift) // ps -1) + 1):
+        for j in range(stride * ((new_w-shift) // ps - 1) + 1):
+            #sub = padded_img[i*ps//2:i*ps//2 + ps,j*ps//2:j*ps//2 + ps]
+            patches.append([shift+i*ps//stride,shift+j*ps//stride,shift+i*ps//stride+ ps,shift+j*ps//stride + ps])
     return patches, img
 
 
@@ -129,20 +132,18 @@ def anchors2patch(patch_list):
 
 
 def patches2img(patches, ori_h, ori_w, ps=min_anchors_size):
+    global stride
     w_num = ori_w // ps + 1
     h_num = ori_h // ps + 1
     new_img = np.zeros((h_num * ps, w_num * ps))
     # print(new_img.shape)
     count = np.zeros_like(new_img)
-
+    num = stride * ((w_num * ps) // ps - 1) + 1
     for ix in range(len(patches)):
-        i = ix // (2 * (w_num * ps // ps) - 1)
-        j = ix % (2 * (w_num * ps // ps) - 1)
-        # print(ix, patches[ix].shape)
-        # print(ix, i*ps//2, i*ps//2 + ps, new_img[i*ps//2: i*ps//2 + ps, j*ps//2: j*ps//2 + ps].shape)
-
-        new_img[i*ps//2: i*ps//2 + ps, j*ps//2: j*ps//2 + ps] += patches[ix]
-        count[i*ps//2:i*ps//2 + ps, j*ps//2:j*ps//2 + ps] += 1
+        i = ix // num
+        j = ix % num
+        new_img[i*ps//stride:i*ps//stride + ps,j*ps//stride:j*ps//stride + ps] += patches[ix]
+        count[i*ps//stride:i*ps//stride + ps,j*ps//stride:j*ps//stride + ps] += 1
     return 1.0 * new_img[:ori_h, :ori_w] / count[:ori_h, :ori_w]
 
 
