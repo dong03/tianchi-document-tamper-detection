@@ -77,10 +77,10 @@ def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_
     new_h, new_w = img.shape[:2]
     patches = []
 
-    for i in range(stride * ((new_h) // ps -1) + 1):
-        for j in range(stride * ((new_w) // ps - 1) + 1):
+    for i in range(stride * ((new_h-shift) // ps -1) + 1):
+        for j in range(stride * ((new_w-shift) // ps - 1) + 1):
             #sub = padded_img[i*ps//2:i*ps//2 + ps,j*ps//2:j*ps//2 + ps]
-            patches.append([i*ps//stride,j*ps//stride,i*ps//stride+ ps,j*ps//stride + ps])
+            patches.append([shift+i*ps//stride,shift+j*ps//stride,shift+i*ps//stride+ ps,shift+j*ps//stride + ps])
     return patches, img
 
 
