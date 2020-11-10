@@ -177,7 +177,7 @@ class ResUnet(nn.Module):
         return deeper
 
 
-class EfficientUnet(nn.Module):
+class EfficientUnet_d(nn.Module):
     def __init__(self, encoder, out_channels=1):
         super().__init__()
 
@@ -294,9 +294,9 @@ class EfficientUnet(nn.Module):
     #
     #     return x
 
-def get_efficientunet_b0(out_channels=2, pretrained=True):
+def get_efficientunet_d_b0(out_channels=2, pretrained=True):
     encoder = EfficientNet.encoder('efficientnet-b0', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
+    model = EfficientUnet_d(encoder, out_channels=out_channels)
     return model
 
 
@@ -312,9 +312,9 @@ def get_efficientunet_b2(out_channels=2, pretrained=True):
     return model
 
 
-def get_efficientunet_b3(out_channels=2, pretrained=True):
+def get_efficientunet_d_b3(out_channels=2, pretrained=True):
     encoder = EfficientNet.encoder('efficientnet-b3', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
+    model = EfficientUnet_d(encoder, out_channels=out_channels)
     return model
 
 

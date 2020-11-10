@@ -8,7 +8,8 @@ import json
 import random
 import torch.backends.cudnn as cudnn
 import numpy as np
-from model.efficientunet import get_efficientunet_b3,get_efficientunet_b0,ResUnet
+from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0
+from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0, ResUnet
 import torch.utils.data
 import argparse
 from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,ReconstructionLoss
@@ -81,9 +82,19 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(opt.manualSeed)
     cudnn.benchmark = True
     if 'b0' in opt.prefix:
-        model = get_efficientunet_b0(out_channels=1, pretrained=True)
+        if "decoder" in opt.prefix:
+            model = get_efficientunet_d_b0(out_channels=1, pretrained=True)
+            print("using model: efficientunet_d_b0")
+        else:
+            model = get_efficientunet_b0(out_channels=1, pretrained=True)
+            print("using model: efficientunet_b0")
     elif 'b3' in opt.prefix:
-        model = get_efficientunet_b3(out_channels=1, pretrained=True)
+        if "decoder" in opt.prefix:
+            model = get_efficientunet_d_b3(out_channels=1, pretrained=True)
+            print("using model: efficientunet_d_b3")
+        else:
+            model = get_efficientunet_b3(out_channels=1, pretrained=True)
+            print("using model: efficientunet_b3")
     elif 'res' in opt.prefix:
         model = ResUnet(out_channels=1)
     else:
