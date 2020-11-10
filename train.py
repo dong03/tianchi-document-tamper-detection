@@ -110,7 +110,6 @@ if __name__ == "__main__":
     rect_loss_fn = ReconstructionLoss()
     awl = AutomaticWeightedLoss(4)
 
-
     if opt.aug:
         trans = create_train_transforms()
     else:
@@ -141,7 +140,6 @@ if __name__ == "__main__":
         annotations=annotation,
         batch_size=1,
         transforms=create_train_transforms())
-
 
     if False:#opt.gpu_num > 1:
         train_data_loader = DataLoader(
@@ -233,7 +231,7 @@ if __name__ == "__main__":
             for ix, (img_path, mask_path) in enumerate(zip(val_img_list, val_mask_list)):
                 img = cv2.imread(img_path)
                 mask = cv2.imread(mask_path,0)
-                seg = inference_single(fake_img=img,model=model,th=opt.th,remove=opt.remove)
+                seg = inference_single(fake_img=img,model=model,th=opt.th,remove=opt.remove,batch_size=opt.batchSize)
                 if ix % 60 == 0:
                     cv2.imwrite(os.path.join(model_savedir,os.path.split(mask_path)[-1]),seg)
                 f1,iou = caculate_f1iou(seg, mask)
@@ -280,7 +278,7 @@ if __name__ == "__main__":
                 for ix, img_path in enumerate(test_img_list):
                     img = cv2.imread(img_path)
 
-                    seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove)
+                    seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=opt.batchSize)
                     np.save(os.path.join(model_savedir,'test_image_%d'%epoch,os.path.split(img_path)[-1].split('.')[0]+ '.npy'),seg.astype(np.uint8))
                     progbar.add(1, values=[('epoch', epoch)])
 

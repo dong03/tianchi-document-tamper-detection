@@ -6,9 +6,7 @@ from model.efficientnet import EfficientNet
 import pdb
 import torchvision
 
-__all__ = ['EfficientUnet', 'get_efficientunet_b0', 'get_efficientunet_b1', 'get_efficientunet_b2',
-           'get_efficientunet_b3', 'get_efficientunet_b4', 'get_efficientunet_b5', 'get_efficientunet_b6',
-           'get_efficientunet_b7']
+__all__ = ['EfficientUnet', 'get_efficientunet_d_b0', 'get_efficientunet_d_b3']
 
 
 def get_blocks_to_be_concat(model, x):
@@ -177,7 +175,7 @@ class ResUnet(nn.Module):
         return deeper
 
 
-class EfficientUnet_d(nn.Module):
+class EfficientUnet(nn.Module):
     def __init__(self, encoder, out_channels=1):
         super().__init__()
 
@@ -296,7 +294,7 @@ class EfficientUnet_d(nn.Module):
 
 def get_efficientunet_d_b0(out_channels=2, pretrained=True):
     encoder = EfficientNet.encoder('efficientnet-b0', pretrained=pretrained)
-    model = EfficientUnet_d(encoder, out_channels=out_channels)
+    model = EfficientUnet(encoder, out_channels=out_channels)
     return model
 
 
@@ -314,7 +312,7 @@ def get_efficientunet_b2(out_channels=2, pretrained=True):
 
 def get_efficientunet_d_b3(out_channels=2, pretrained=True):
     encoder = EfficientNet.encoder('efficientnet-b3', pretrained=pretrained)
-    model = EfficientUnet_d(encoder, out_channels=out_channels)
+    model = EfficientUnet(encoder, out_channels=out_channels)
     return model
 
 

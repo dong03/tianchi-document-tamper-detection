@@ -33,7 +33,7 @@ def run_model(model, inputs):
     return output
 
 
-def inference_single(fake_img, model, th=0.25, remove=True):
+def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64):
     model.eval()
     with torch.no_grad():
         padded_img = pad_img(fake_img, big_size=max_anchors_size, small_size=min_anchors_size)
@@ -62,7 +62,6 @@ def inference_single(fake_img, model, th=0.25, remove=True):
             # print(input_big.shape)
         inputs_small = direct_val(inputs_small).cuda()
         # inputs_big = direct_val(inputs_big).cuda()
-        batch_size = 64
         iter_num = len(inputs_small)//64
         outputs = []
         for i in range(iter_num+1):
