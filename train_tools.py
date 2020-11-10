@@ -9,7 +9,7 @@ from utils import Normalize_3D, UnNormalize_3D, Progbar, remove_small, img2input
 
 import cv2
 #from utils import resize_types, new_sizes, anchors
-
+debug = 0
 
 transform_tns = transforms.Compose([
     transforms.ToTensor(),
@@ -128,14 +128,22 @@ def run_iter(model, data_loader, epoch, loss_funcs,
         loss_focal = int(opt.loss_type[2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
         loss_rect = int(opt.loss_type[3]) * rect_loss_fn(seg, small_mask)
 
-        if torch.sum(torch.isnan(loss_focal)) or torch.sum(
-                torch.isinf(loss_focal)) or loss_focal < 0:
-            loss_total = awl(loss_bce, loss_dice, loss_rect)
-        else:
-            loss_total = awl(loss_bce, loss_dice, loss_rect, loss_focal)
-
-        if torch.sum(torch.isnan(loss_total)) or loss_bce < 0:
+        temp_loss = [loss_bce.cpu().detach(),loss_dice.cpu().detach(),loss_focal.cpu().detach(),loss_rect.cpu().detach()]
+        temp_loss = [1-int(torch.sum(torch.isnan(each)) or each<0) for each in temp_loss]
+        if debug and 0 in temp_loss:
             pdb.set_trace()
+        else:
+            loss_total = awl(temp_loss[0] * loss_bce, temp_loss[1] * loss_dice, temp_loss[2] * loss_focal,temp_loss[3]*loss_rect)
+
+        #
+        # if torch.sum(torch.isnan(loss_focal)) or torch.sum(
+        #         torch.isinf(loss_focal)) or loss_focal < 0:
+        #     loss_total = awl(loss_bce, loss_dice, loss_rect)
+        # else:
+        #     loss_total = awl(loss_bce, loss_dice, loss_rect, loss_focal)
+        #
+        # if torch.sum(torch.isnan(loss_total)) or loss_bce < 0:
+        #     pdb.set_trace()
         if optimizer is not None:
             loss_total.backward()
 

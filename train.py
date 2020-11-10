@@ -100,10 +100,7 @@ if __name__ == "__main__":
     else:
         print("must have model_type in prefix(b0/b3")
         sys.exit()
-    if '256' in opt.prefix:
-        resize_type_ix = 0
-    elif '288' in opt.prefix:
-        resize_type_ix = 1
+
     bce_loss_fn = SegmentationLoss()
     focal_loss_fn = SegFocalLoss()
     dice_loss_fn = DiceLoss()
