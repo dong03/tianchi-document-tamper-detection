@@ -184,4 +184,4 @@ def run_iter(model, data_loader, epoch, loss_funcs,
     loss_rect_sum /= count
     # if scheduler is not None:
     #     scheduler.step()
-    return loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum
+    return loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, board_num

@@ -200,7 +200,7 @@ if __name__ == "__main__":
     for epoch in range(start_epoch, opt.niter+1):
         train_data_loader.dataset.reset_seed(epoch, 777)
 
-        loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = \
+        loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, board_num = \
             run_iter(model, train_data_loader, epoch, opt=opt,
                      board_num= board_num,
                      loss_funcs=(bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl),
