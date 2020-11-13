@@ -25,6 +25,7 @@ from tensorboardX import SummaryWriter
 import shutil
 from torch.utils.data.distributed import DistributedSampler
 from transforms import create_train_transforms
+from apex import amp
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
@@ -43,6 +44,7 @@ parser.add_argument('--gpu_num', type=int, default=1)
 parser.add_argument("--local_rank", type=int, default=0)
 parser.add_argument("--aug", type=int, default=1)
 parser.add_argument("--loss_type", type=str, default='1111')
+parser.add_argument("--fp16", type=int, default=1)
 
 torch.backends.cudnn.benchmark = True
 if __name__ == "__main__":
@@ -66,7 +68,8 @@ if __name__ == "__main__":
     params_file = os.path.join(model_savedir, 'params.json')
     with open(params_file, 'w') as fp:
         json.dump(params, fp, indent=4)
-    writer_dir = '/data/dongchengbo/tianchi_output/%s' % opt.prefix
+
+    writer_dir = '/data/dongchengbo/tianchi_output/%s'%opt.prefix
 
     if os.path.exists(writer_dir):
         shutil.rmtree(writer_dir, ignore_errors=True)
@@ -100,10 +103,7 @@ if __name__ == "__main__":
     else:
         print("must have model_type in prefix(b0/b3")
         sys.exit()
-    if '256' in opt.prefix:
-        resize_type_ix = 0
-    elif '288' in opt.prefix:
-        resize_type_ix = 1
+
     bce_loss_fn = SegmentationLoss()
     focal_loss_fn = SegFocalLoss()
     dice_loss_fn = DiceLoss()
@@ -130,8 +130,8 @@ if __name__ == "__main__":
         train_img_list = f.readlines()
     val_img_list = [each.strip("\n") for each in val_img_list]
     val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list]
-    train_img_list = [each.strip("\n") for each in train_img_list]
-    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list]
+    train_img_list = [each.strip("\n") for each in train_img_list][:10]
+    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
     print(len(train_img_list))
     print(len(val_img_list))
     annotation = {"img": train_img_list, "mask": train_mask_list}
@@ -184,8 +184,12 @@ if __name__ == "__main__":
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model.cuda()
-    if opt.gpu_num > 1:
+    if opt.gpu_num > 1 and opt.fp16:
         assert opt.gpu_num == torch.cuda.device_count()
+        amp.register_float_function(torch, 'sigmoid')
+        model, optimizer = amp.initialize(model, optimizer, opt_level='O1', loss_scale='dynamic')
+        model = nn.DataParallel(model)
+    elif opt.gpu_num > 1:
         model = nn.DataParallel(model)
         #model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[local_rank],output_device=local_rank)
     bce_loss_fn.cuda()
@@ -203,7 +207,7 @@ if __name__ == "__main__":
     for epoch in range(start_epoch, opt.niter+1):
         train_data_loader.dataset.reset_seed(epoch, 777)
 
-        loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = \
+        loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, board_num = \
             run_iter(model, train_data_loader, epoch, opt=opt,
                      board_num= board_num,
                      loss_funcs=(bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl),
@@ -257,7 +261,7 @@ if __name__ == "__main__":
                 }, os.path.join(model_savedir, 'model_best.pt'))
 
 
-            writer.add_scalars(opt.prefix, {"score":iou_avg + f1_avg,"bst_s": best_score},board_num)
+            writer.add_scalars(opt.prefix, {"score":iou_avg + f1_avg,"bst_s": best_score},epoch)
             print('[Epoch %d] Train: bce: %.4f  focal: %.4f  dce: %.4f  rect:%.4f |score:%.4f bst:%.4f'
             % (epoch, loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, iou_avg + f1_avg, best_score))
 
