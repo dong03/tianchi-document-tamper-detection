@@ -33,7 +33,7 @@ parser.add_argument('--imageSize', type=int, default=256, help='the height / wid
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate, default=0.01')
 parser.add_argument('--gpu_id', type=int, default=2, help='GPU ID')
 parser.add_argument('--resume', type=str, default='none', help="choose a epochs to resume from (0 to train from scratch)")
-parser.add_argument('--outf', default='/data/chenxinru/tianchi_checkpoints', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='/data/dongchengbo/tianchi_checkpoints', help='folder to output images and model checkpoints')
 parser.add_argument('--prefix', type=str, required=True)
 parser.add_argument('--th', type=float, default=0.25)
 parser.add_argument('--remove', type=int, default=0)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     params_file = os.path.join(model_savedir, 'params.json')
     with open(params_file, 'w') as fp:
         json.dump(params, fp, indent=4)
-    writer_dir = 'output/%s'%opt.prefix
+    writer_dir = '/data/dongchengbo/tianchi_output/%s' % opt.prefix
 
     if os.path.exists(writer_dir):
         shutil.rmtree(writer_dir, ignore_errors=True)

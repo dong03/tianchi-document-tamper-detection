@@ -80,6 +80,7 @@ class CAB(nn.Module):
         res = x2 + x1
         return res
 
+
 class RRB(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(RRB, self).__init__()
@@ -96,7 +97,6 @@ class RRB(nn.Module):
         res = self.relu(res)
         res = self.conv3(res)
         return self.relu(x + res)
-
 
 
 class ResUnet(nn.Module):
@@ -257,40 +257,110 @@ class EfficientUnet(nn.Module):
             deeper = self.rrb_u[-ix](deeper)
         deeper = self.final_conv(deeper)
         return deeper
-    # def forward(self, x):
-    #     input_ = x
-    #
-    #     blocks = get_blocks_to_be_concat(self.encoder, x)
-    #     _, x = blocks.popitem()
-    #     #print(x.device)
-    #     x = self.up_conv1(x)
-    #     try:
-    #         temp = blocks.popitem()[1]
-    #         x = torch.cat([x, temp.to(device=x.device)], dim=1)
-    #     except:
-    #         pdb.set_trace()
-    #     x = self.double_conv1(x)
-    #
-    #     x = self.up_conv2(x)
-    #     x = torch.cat([x, blocks.popitem()[1].to(device=x.device)], dim=1)
-    #     x = self.double_conv2(x)
-    #
-    #     x = self.up_conv3(x)
-    #     x = torch.cat([x, blocks.popitem()[1].to(device=x.device)], dim=1)
-    #     x = self.double_conv3(x)
-    #
-    #     x = self.up_conv4(x)
-    #     x = torch.cat([x, blocks.popitem()[1].to(device=x.device)], dim=1)
-    #     x = self.double_conv4(x)
-    #
-    #     if self.concat_input:
-    #         x = self.up_conv_input(x)
-    #         x = torch.cat([x, input_.to(device=x.device)], dim=1)
-    #         x = self.double_conv_input(x)
-    #
-    #     x = self.final_conv(x)
-    #
-    #     return x
+
+
+class EfficientUnet_ddown(nn.Module):
+    def __init__(self, encoder, out_channels=1):
+        super().__init__()
+
+        self.encoder = encoder
+
+        self.out_conv = nn.Conv2d(self.n_channels,self.size[4],kernel_size=1)
+        # self.final_conv = nn.Conv2d(self.size[0], out_channels, kernel_size=1)
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear",align_corners=False)
+
+        self.rrb_d = nn.ModuleList([
+            RRB(self.size[1], self.size[1]),
+            RRB(self.size[2], self.size[2]),
+            RRB(self.size[3], self.size[3]),
+            RRB(self.size[4], self.size[4]),
+        ])
+
+        self.cab = nn.ModuleList([
+            CAB(self.size[1] * 2, self.size[1]),
+            CAB(self.size[2] * 2, self.size[2]),
+            CAB(self.size[3] * 2, self.size[3]),
+            CAB(self.size[4] * 2, self.size[4]),
+        ])
+
+        self.rrb_u = nn.ModuleList([
+            RRB(self.size[1], self.size[0]),
+            RRB(self.size[2], self.size[1]),
+            RRB(self.size[3], self.size[2]),
+            RRB(self.size[4], self.size[3]),
+        ])
+
+        self.upconvs = nn.ModuleList([
+            up_conv(self.size[1], self.size[1]),
+            up_conv(self.size[2], self.size[2]),
+            up_conv(self.size[3], self.size[3]),
+            up_conv_samesize(self.size[4], self.size[4]),  # same size
+        ])
+
+        self.double_conv_u = nn.ModuleList([
+            double_conv(self.size[1], self.size[0]),
+            double_conv(self.size[2], self.size[1]),
+            double_conv(self.size[3], self.size[2]),
+            double_conv(self.size[4], self.size[3]),
+        ])
+
+        self.final_upconvs = nn.Sequential(
+            # nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            up_conv(self.size[0], self.size[0]),
+            nn.Conv2d(self.size[0], out_channels, kernel_size=1)
+            # double_conv(self.size[0], out_channels),
+        )
+
+    @property
+    def n_channels(self):
+        n_channels_dict = {'efficientnet-b0': 1280, 'efficientnet-b1': 1280, 'efficientnet-b2': 1408,
+                           'efficientnet-b3': 1536, 'efficientnet-b4': 1792, 'efficientnet-b5': 2048,
+                           'efficientnet-b6': 2304, 'efficientnet-b7': 2560}
+        return n_channels_dict[self.encoder.name]
+
+    @property
+    def size(self):
+        size_dict = {'efficientnet-b0': [16,24,40,80,112,192,320], 'efficientnet-b1': [592, 296, 152, 80, 35, 32],
+                     'efficientnet-b2': [600, 304, 152, 80, 35, 32], 'efficientnet-b3': [24,32,48,96,136,232,384],
+                     'efficientnet-b4': [624, 312, 160, 88, 35, 32], 'efficientnet-b5': [640, 320, 168, 88, 35, 32],
+                     'efficientnet-b6': [656, 328, 168, 96, 35, 32], 'efficientnet-b7': [672, 336, 176, 96, 35, 32]}
+        return size_dict[self.encoder.name]
+
+    @property
+    def block_ix(self):
+        # size_dict = {'efficientnet-b0': [0,2,4,7],'efficientnet-b3':[1,4,7,12]}
+        size_dict = {'efficientnet-b0': [2, 4, 7, 10], 'efficientnet-b3': [4, 7, 12, 17]}
+        return size_dict[self.encoder.name]
+
+    def run_encoder(self,x):
+        in_encoder = nn.Sequential(*list(self.encoder.children())[:3])
+        out_encoder = nn.Sequential(*list(self.encoder.children())[-3:])
+        middle_block = nn.Sequential(*list(self.encoder.children())[3])
+        models = [nn.Sequential(list(middle_block.children())[i]) for i in range(len(middle_block))]
+        x = in_encoder(x)
+        results = []
+        for ix, each_model in enumerate(models):
+            x = each_model(x)
+            if ix in self.block_ix:
+                results.append(x)
+        x = out_encoder(x)
+        return x, results
+
+    def forward(self, x):
+        x, results = self.run_encoder(x)
+        global_feature = self.global_pool(x)
+        deeper = nn.Upsample(size=results[-1].size()[2:], mode="nearest")(global_feature)
+        deeper = self.out_conv(deeper)
+        for ix in range(1,5):
+            shallow = self.rrb_d[-ix](results[-ix])
+            deeper = self.cab[-ix](shallow, deeper)
+            deeper = self.upconvs[-ix](deeper)
+            deeper = self.rrb_u[-ix](deeper)
+            # deeper = self.double_conv_u[-ix](deeper)
+        deeper = self.final_upconvs(deeper)
+        return deeper
+
 
 def get_efficientunet_d_b0(out_channels=2, pretrained=True):
     encoder = EfficientNet.encoder('efficientnet-b0', pretrained=pretrained)
@@ -340,7 +410,7 @@ def get_efficientunet_b7(out_channels=2,  pretrained=True):
     return model
 
 if __name__ == '__main__':
-    model = get_efficientunet_b0(out_channels=1)
+    model = get_efficientunet_d_b3(out_channels=1)
     #model = ResUnet(out_channels=1)
     inp = torch.randn((2,3,256,256))
     out = model(inp)

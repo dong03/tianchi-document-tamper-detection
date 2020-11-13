@@ -62,7 +62,7 @@ def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64):
             # print(input_big.shape)
         inputs_small = direct_val(inputs_small).cuda()
         # inputs_big = direct_val(inputs_big).cuda()
-        iter_num = len(inputs_small)//64
+        iter_num = len(inputs_small)//batch_size
         outputs = []
         for i in range(iter_num+1):
             stop = min((i+1)*batch_size, len(inputs_small))
