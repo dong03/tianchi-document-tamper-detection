@@ -25,6 +25,7 @@ from tensorboardX import SummaryWriter
 import shutil
 from torch.utils.data.distributed import DistributedSampler
 from transforms import create_train_transforms
+from apex import amp
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=16)
@@ -43,6 +44,7 @@ parser.add_argument('--gpu_num', type=int, default=1)
 parser.add_argument("--local_rank", type=int, default=0)
 parser.add_argument("--aug", type=int, default=1)
 parser.add_argument("--loss_type", type=str, default='1111')
+parser.add_argument("--fp16", type=int, default=1)
 
 torch.backends.cudnn.benchmark = True
 if __name__ == "__main__":
@@ -181,8 +183,12 @@ if __name__ == "__main__":
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model.cuda()
-    if opt.gpu_num > 1:
+    if opt.gpu_num > 1 and opt.fp16:
         assert opt.gpu_num == torch.cuda.device_count()
+        amp.register_float_function(torch, 'sigmoid')
+        model, optimizer = amp.initialize(model, optimizer, opt_level='O1', loss_scale='dynamic')
+        model = nn.DataParallel(model)
+    elif opt.gpu_num > 1:
         model = nn.DataParallel(model)
         #model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[local_rank],output_device=local_rank)
     bce_loss_fn.cuda()
