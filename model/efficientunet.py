@@ -175,7 +175,7 @@ class ResUnet(nn.Module):
         return deeper
 
 
-class EfficientUnet(nn.Module):
+class EfficientUnet_dup(nn.Module):
     def __init__(self, encoder, out_channels=1):
         super().__init__()
 
@@ -259,55 +259,62 @@ class EfficientUnet(nn.Module):
         return deeper
 
 
-class EfficientUnet_ddown(nn.Module):
+class EfficientUnet(nn.Module):
     def __init__(self, encoder, out_channels=1):
         super().__init__()
 
         self.encoder = encoder
 
-        self.out_conv = nn.Conv2d(self.n_channels,self.size[4],kernel_size=1)
+        self.out_conv = nn.Conv2d(self.n_channels,self.size[6],kernel_size=1)
         # self.final_conv = nn.Conv2d(self.size[0], out_channels, kernel_size=1)
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear",align_corners=False)
 
         self.rrb_d = nn.ModuleList([
-            RRB(self.size[1], self.size[1]),
-            RRB(self.size[2], self.size[2]),
             RRB(self.size[3], self.size[3]),
             RRB(self.size[4], self.size[4]),
+            RRB(self.size[5], self.size[5]),
+            RRB(self.size[6], self.size[6]),
         ])
 
         self.cab = nn.ModuleList([
-            CAB(self.size[1] * 2, self.size[1]),
-            CAB(self.size[2] * 2, self.size[2]),
             CAB(self.size[3] * 2, self.size[3]),
             CAB(self.size[4] * 2, self.size[4]),
+            CAB(self.size[5] * 2, self.size[5]),
+            CAB(self.size[6] * 2, self.size[6]),
         ])
 
         self.rrb_u = nn.ModuleList([
-            RRB(self.size[1], self.size[0]),
-            RRB(self.size[2], self.size[1]),
             RRB(self.size[3], self.size[2]),
             RRB(self.size[4], self.size[3]),
+            RRB(self.size[5], self.size[4]),
+            RRB(self.size[6], self.size[5]),
         ])
 
         self.upconvs = nn.ModuleList([
-            up_conv(self.size[1], self.size[1]),
-            up_conv(self.size[2], self.size[2]),
             up_conv(self.size[3], self.size[3]),
             up_conv_samesize(self.size[4], self.size[4]),  # same size
+            up_conv(self.size[5], self.size[5]),
+            up_conv_samesize(self.size[6], self.size[6]),
         ])
 
         self.double_conv_u = nn.ModuleList([
-            double_conv(self.size[1], self.size[0]),
-            double_conv(self.size[2], self.size[1]),
             double_conv(self.size[3], self.size[2]),
             double_conv(self.size[4], self.size[3]),
+            double_conv(self.size[5], self.size[4]),
+            double_conv(self.size[6], self.size[5]),
         ])
 
         self.final_upconvs = nn.Sequential(
             # nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            up_conv(self.size[2], self.size[1]),
+            double_conv(self.size[1], self.size[1]),
+
+            up_conv(self.size[1], self.size[0]),
+            double_conv(self.size[0], self.size[0]),
+
             up_conv(self.size[0], self.size[0]),
+
             nn.Conv2d(self.size[0], out_channels, kernel_size=1)
             # double_conv(self.size[0], out_channels),
         )
@@ -330,7 +337,8 @@ class EfficientUnet_ddown(nn.Module):
     @property
     def block_ix(self):
         # size_dict = {'efficientnet-b0': [0,2,4,7],'efficientnet-b3':[1,4,7,12]}
-        size_dict = {'efficientnet-b0': [2, 4, 7, 10], 'efficientnet-b3': [4, 7, 12, 17]}
+        # size_dict = {'efficientnet-b0': [2, 4, 7, 10], 'efficientnet-b3': [4, 7, 12, 17]}
+        size_dict = {'efficientnet-b0': [7, 10, 14, 15], 'efficientnet-b3': [12, 17, 23, 25]}
         return size_dict[self.encoder.name]
 
     def run_encoder(self,x):
@@ -411,6 +419,7 @@ def get_efficientunet_b7(out_channels=2,  pretrained=True):
 
 if __name__ == '__main__':
     model = get_efficientunet_d_b3(out_channels=1)
+    print(model.block_ix)
     #model = ResUnet(out_channels=1)
     inp = torch.randn((2,3,256,256))
     out = model(inp)
