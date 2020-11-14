@@ -129,8 +129,8 @@ if __name__ == "__main__":
         train_img_list = f.readlines()
     val_img_list = [each.strip("\n") for each in val_img_list]
     val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list]
-    train_img_list = [each.strip("\n") for each in train_img_list][:10]
-    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
+    train_img_list = [each.strip("\n") for each in train_img_list]
+    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list]
     print(len(train_img_list))
     print(len(val_img_list))
     annotation = {"img": train_img_list, "mask": train_mask_list}
