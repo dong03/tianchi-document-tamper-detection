@@ -7,7 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--th', type=float, default=1.5)
-parser.add_argument('--ori_img_dir', type=str, required=True)
+parser.add_argument('--ori_img_dir',nargs='+', type=str, required=True)
 parser.add_argument('--save_dir', type=str, required=True)
 opt = parser.parse_args()
 
@@ -18,8 +18,13 @@ def post_process(img_paths, save_dir, remove, th_std=1.5):
     mean_list = []
     std_list = []
     th_list = []
-    for img_path in tqdm(img_paths):
-        img = np.load(img_path)
+    for img_id in tqdm(range(1,1501)):
+        if len(img_paths) == 2:
+            img1 = np.load("%s/%d.npy"%(img_paths[0],img_id))
+            img2 = np.load("%s/%d.npy" % (img_paths[1], img_id))
+            img = np.maximum(img1,img2)
+        else:
+            img = np.load("%s/%d.npy"%(img_paths[0],img_id))
         # if th_std == 0:
         #     img = 255.0 * (img > 0.5)
         #     img = img.astype(np.uint8)
@@ -52,8 +57,8 @@ def post_process(img_paths, save_dir, remove, th_std=1.5):
         if remove:
             img = remove_small(img)
 
-        img_id = img_path.split("/")[-1].split(".")[0]
-        img_save_path = os.path.join(save_dir, img_id+".png")
+        #img_id = img_path.split("/")[-1].split(".")[0]
+        img_save_path = os.path.join(save_dir,"%d.png"%img_id)
         # img_save_path = img_path.replace("/dongchengbo", "/chenxinru/VisualSearch").replace(".npy", ".png")
 
         cv2.imwrite(img_save_path, img)
@@ -68,20 +73,20 @@ if __name__ == '__main__':
     # save_dir = os.path.join("/data/chenxinru/VisualSearch/tianchi_s2/s2_data/output",
     # "decoder_b3_256_4loss_stride4_mean_1.5std_1", "images")
     ori_img_dir = opt.ori_img_dir
-    save_dir = opt.save_dir
+    save_dir = opt.save_dir + '_%.2f'%opt.th
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     print("save dir ", save_dir)
 
-    img_paths = ["%s/%d.npy" % (ori_img_dir, i) for i in range(1, 1501)]
+    #img_paths = ["%s/%d.npy" % (ori_img_dir, i) for i in range(1, 1501)]
     # img_paths = []
     # for root, dirs, files in os.walk(ori_img_dir):
     #     # print(files)
     #     for f in files:
     #         img_paths.append(os.path.join(root, f))
     # print("test len ", len(img_paths))
-
+    img_paths = [each for each in opt.ori_img_dir]
     mean_list, std_list = post_process(img_paths, save_dir, True, opt.th)
 
 
