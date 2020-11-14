@@ -68,6 +68,7 @@ if __name__ == "__main__":
     params_file = os.path.join(model_savedir, 'params.json')
     with open(params_file, 'w') as fp:
         json.dump(params, fp, indent=4)
+
     writer_dir = '/data/dongchengbo/tianchi_output/%s'%opt.prefix
 
     if os.path.exists(writer_dir):

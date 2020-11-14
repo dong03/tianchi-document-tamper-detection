@@ -177,6 +177,14 @@ def up_conv(in_channels, out_channels):
     )
 
 
+def up_conv_samesize(in_channels, out_channels):
+    return nn.Sequential(
+        nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=1),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU(inplace=True),
+    )
+
+
 def custom_head(in_channels, out_channels):
     return nn.Sequential(
         nn.Dropout(),
