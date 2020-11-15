@@ -33,7 +33,7 @@ opt = parser.parse_args()
 print(opt)
 
 train_path = '/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/test'
-save_path = '/data/dongchengbo/%s'%opt.prefix
+save_path = '/data/dongchengbo/tianchi_draw/%s'%opt.prefix
 
 if os.path.exists(save_path):
     shutil.rmtree(save_path, ignore_errors=True)

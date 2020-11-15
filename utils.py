@@ -16,9 +16,9 @@ cv2.setNumThreads(0)
 # anchors = [(256, 256), (96, 96)]
 # types = ["256_256", "96_96"]
 
-# anchors = [(448, 448), (320, 320)]
-# types = ["448_448", "320_320"]
-# max_anchors_size = 448
+# anchors = [(384, 384), (320, 320)]
+# types = ["384_384", "320_320"]
+# max_anchors_size = 384
 # min_anchors_size = 320
 
 anchors = [(320, 320), (256, 256)]
