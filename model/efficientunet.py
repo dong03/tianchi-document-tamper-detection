@@ -175,7 +175,7 @@ class ResUnet(nn.Module):
         return deeper
 
 
-class EfficientUnet_dup(nn.Module):
+class EfficientUnet_0_3(nn.Module):
     def __init__(self, encoder, out_channels=1):
         super().__init__()
 
@@ -206,7 +206,7 @@ class EfficientUnet_dup(nn.Module):
         ])
 
         self.upconvs = nn.ModuleList([
-            up_conv(self.size[0], self.size[0]),
+            up_conv(self.size[0]+self.in_encoder_channel(), self.size[0]),
             up_conv(self.size[1], self.size[1]),
             up_conv(self.size[2], self.size[2]),
             up_conv(self.size[3], self.size[3])
@@ -217,7 +217,9 @@ class EfficientUnet_dup(nn.Module):
                            'efficientnet-b3': 1536, 'efficientnet-b4': 1792, 'efficientnet-b5': 2048,
                            'efficientnet-b6': 2304, 'efficientnet-b7': 2560}
         return n_channels_dict[self.encoder.name]
-
+    def in_encoder_channel(self):
+        in_encoder_channel_dict = {'efficientnet-b0': 32, 'efficientnet-b3': 40}
+        return in_encoder_channel_dict[self.encoder.name]
     @property
     def size(self):
         size_dict = {'efficientnet-b0': [16,24,40,80,112,192,320], 'efficientnet-b1': [592, 296, 152, 80, 35, 32],
@@ -236,27 +238,36 @@ class EfficientUnet_dup(nn.Module):
         out_encoder = nn.Sequential(*list(self.encoder.children())[-3:])
         middle_block = nn.Sequential(*list(self.encoder.children())[3])
         models = [nn.Sequential(list(middle_block.children())[i]) for i in range(len(middle_block))]
+        in_encoder_x = in_encoder(x)
         x = in_encoder(x)
+
         results = []
         for ix, each_model in enumerate(models):
             x = each_model(x)
             if ix in self.block_ix:
                 results.append(x)
         x = out_encoder(x)
-        return x, results
+        return x, results, in_encoder_x
 
     def forward(self, x):
-        x, results = self.run_encoder(x)
+        x, results, in_encoder_x = self.run_encoder(x)
         global_feature = self.global_pool(x)
         deeper = nn.Upsample(size=results[-1].size()[2:], mode="nearest")(global_feature)
         deeper = self.out_conv(deeper)
-        for ix in range(1,5):
+        for ix in range(1,4):
             shallow = self.rrb_d[-ix](results[-ix])
             deeper = self.cab[-ix](shallow,deeper)
             deeper = self.upconvs[-ix](deeper)
             deeper = self.rrb_u[-ix](deeper)
-        deeper = self.final_conv(deeper)
-        return deeper
+
+        shallow = self.rrb_d[0](results[0])
+        deeper = self.cab[0](shallow, deeper)
+        deeper = self.rrb_u[0](deeper)
+
+        x = torch.cat([deeper, in_encoder_x.to(deeper.device)], dim=1)
+        x = self.upconvs[0](x)
+        x = self.final_conv(x)
+        return x
 
 
 class EfficientUnet(nn.Module):
@@ -266,7 +277,7 @@ class EfficientUnet(nn.Module):
         self.encoder = encoder
 
         self.out_conv = nn.Conv2d(self.n_channels,self.size[6],kernel_size=1)
-        # self.final_conv = nn.Conv2d(self.size[0], out_channels, kernel_size=1)
+        self.final_conv = nn.Conv2d(self.size[0], out_channels, kernel_size=1)
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear",align_corners=False)
 
@@ -292,7 +303,7 @@ class EfficientUnet(nn.Module):
         ])
 
         self.upconvs = nn.ModuleList([
-            up_conv(self.size[3], self.size[3]),
+            up_conv(self.size[0] + self.in_encoder_channel(), self.size[0]),
             up_conv_samesize(self.size[4], self.size[4]),  # same size
             up_conv(self.size[5], self.size[5]),
             up_conv_samesize(self.size[6], self.size[6]),
@@ -314,8 +325,8 @@ class EfficientUnet(nn.Module):
             double_conv(self.size[0], self.size[0]),
 
             up_conv(self.size[0], self.size[0]),
-
-            nn.Conv2d(self.size[0], out_channels, kernel_size=1)
+            double_conv(self.size[0], self.size[0]),
+            # nn.Conv2d(self.size[0], out_channels, kernel_size=1)
             # double_conv(self.size[0], out_channels),
         )
 
@@ -325,7 +336,9 @@ class EfficientUnet(nn.Module):
                            'efficientnet-b3': 1536, 'efficientnet-b4': 1792, 'efficientnet-b5': 2048,
                            'efficientnet-b6': 2304, 'efficientnet-b7': 2560}
         return n_channels_dict[self.encoder.name]
-
+    def in_encoder_channel(self):
+        in_encoder_channel_dict = {'efficientnet-b0': 32, 'efficientnet-b3': 40}
+        return in_encoder_channel_dict[self.encoder.name]
     @property
     def size(self):
         size_dict = {'efficientnet-b0': [16,24,40,80,112,192,320], 'efficientnet-b1': [592, 296, 152, 80, 35, 32],
@@ -346,6 +359,7 @@ class EfficientUnet(nn.Module):
         out_encoder = nn.Sequential(*list(self.encoder.children())[-3:])
         middle_block = nn.Sequential(*list(self.encoder.children())[3])
         models = [nn.Sequential(list(middle_block.children())[i]) for i in range(len(middle_block))]
+        in_encoder_x = in_encoder(x)
         x = in_encoder(x)
         results = []
         for ix, each_model in enumerate(models):
@@ -353,21 +367,37 @@ class EfficientUnet(nn.Module):
             if ix in self.block_ix:
                 results.append(x)
         x = out_encoder(x)
-        return x, results
+        return x, results, in_encoder_x
 
     def forward(self, x):
-        x, results = self.run_encoder(x)
+        x, results, in_encoder_x = self.run_encoder(x)
         global_feature = self.global_pool(x)
         deeper = nn.Upsample(size=results[-1].size()[2:], mode="nearest")(global_feature)
         deeper = self.out_conv(deeper)
-        for ix in range(1,5):
+        # for ix in range(1,5):
+        #     shallow = self.rrb_d[-ix](results[-ix])
+        #     deeper = self.cab[-ix](shallow, deeper)
+        #     deeper = self.upconvs[-ix](deeper)
+        #     deeper = self.rrb_u[-ix](deeper)
+        #     # deeper = self.double_conv_u[-ix](deeper)
+        # deeper = self.final_upconvs(deeper)
+        # return deeper
+        for ix in range(1,4):
             shallow = self.rrb_d[-ix](results[-ix])
-            deeper = self.cab[-ix](shallow, deeper)
+            deeper = self.cab[-ix](shallow,deeper)
             deeper = self.upconvs[-ix](deeper)
             deeper = self.rrb_u[-ix](deeper)
-            # deeper = self.double_conv_u[-ix](deeper)
-        deeper = self.final_upconvs(deeper)
-        return deeper
+
+        shallow = self.rrb_d[0](results[0])
+        deeper = self.cab[0](shallow, deeper)
+        deeper = self.rrb_u[0](deeper)
+        x = self.final_upconvs(deeper)
+
+        x = torch.cat([x, in_encoder_x.to(x.device)], dim=1)
+        x = self.upconvs[0](x)
+        x = self.final_conv(x)
+
+        return x
 
 
 def get_efficientunet_d_b0(out_channels=2, pretrained=True):

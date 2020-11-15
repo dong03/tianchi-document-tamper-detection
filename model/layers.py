@@ -164,12 +164,12 @@ def double_conv(in_channels, out_channels):
     )
 
 
-def up_conv_0(in_channels, out_channels):
+def up_conv(in_channels, out_channels):
     return nn.ConvTranspose2d(
         in_channels, out_channels, kernel_size=2, stride=2
     )
 
-def up_conv(in_channels, out_channels):
+def up_conv_0(in_channels, out_channels):
     return nn.Sequential(
         nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2),
         nn.BatchNorm2d(out_channels),
