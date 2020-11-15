@@ -341,6 +341,16 @@ def get_efficientunet_b3(out_channels=2, pretrained=True):
     model = EfficientUnet(encoder, out_channels=out_channels)
     return model
 
+def get_efficientunet_b0_root(out_channels=1, pretrained=True):
+    encoder = EfficientNet.encoder('efficientnet-b0', pretrained=pretrained)
+    model = EfficientUnet_ori(encoder, out_channels=out_channels)
+    return model
+
+
+def get_efficientunet_b3_root(out_channels=1, pretrained=True):
+    encoder = EfficientNet.encoder('efficientnet-b3', pretrained=pretrained)
+    model = EfficientUnet_ori(encoder, out_channels=out_channels)
+    return model
 
 if __name__ == '__main__':
     # inp = torch.randn((2, 3, 96, 96))
