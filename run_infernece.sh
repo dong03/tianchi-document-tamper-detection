@@ -1,8 +1,7 @@
 clear
 rlaunch --cpu=8 --gpu=1 --memory=4096 -- python3 inference.py \
 --gpu_id 0 \
---resume /data/dongchengbo/tianchi_checkpoints/b0_noaug_256_s/model_best.pt \
---th 0.3 \
+--resume /data/dongchengbo/tianchi_checkpoints/deeplab_xception_256_4loss_stride8/model_best.pt \
 --remove 1 \
 --prefix $1
 
