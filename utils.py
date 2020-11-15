@@ -16,16 +16,16 @@ cv2.setNumThreads(0)
 # anchors = [(256, 256), (96, 96)]
 # types = ["256_256", "96_96"]
 
+# anchors = [(448, 448), (320, 320)]
+# types = ["448_448", "320_320"]
+# max_anchors_size = 448
+# min_anchors_size = 320
+
 anchors = [(320, 320), (256, 256)]
 types = ["320_320", "256_256"]
 max_anchors_size = 320
 min_anchors_size = 256
 stride = 4
-# anchors = [(320, 320), (256, 256)]
-# types = ["320_320", "256_256"]
-# max_anchors_size = 320
-# min_anchors_size = 256
-
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
 logger = logging.getLogger(__file__)

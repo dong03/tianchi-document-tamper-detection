@@ -235,7 +235,7 @@ class Xception(nn.Module):
         state_dict = self.state_dict()
 
         for k, v in pretrain_dict.items():
-            print(k)
+            #print(k)
             if k in state_dict:
                 if 'pointwise' in k:
                     v = v.unsqueeze(-1).unsqueeze(-1)
@@ -290,14 +290,14 @@ class ASPP_module(nn.Module):
                 m.bias.data.zero_()
 
 
-class DeepLabv3_plus(nn.Module):
-    def __init__(self, nInputChannels=3, n_classes=21, os=16, pretrained=False, _print=True):
+class DeepLabv3_plus_xception(nn.Module):
+    def __init__(self, nInputChannels=3, out_channels=21, os=16, pretrained=False, _print=True):
         if _print:
             print("Constructing DeepLabv3+ model...")
-            print("Number of classes: {}".format(n_classes))
+            print("Number of classes: {}".format(out_channels))
             print("Output stride: {}".format(os))
             print("Number of Input Channels: {}".format(nInputChannels))
-        super(DeepLabv3_plus, self).__init__()
+        super(DeepLabv3_plus_xception, self).__init__()
 
         # Atrous Conv
         self.xception_features = Xception(nInputChannels, os, pretrained)
@@ -335,7 +335,7 @@ class DeepLabv3_plus(nn.Module):
                                        nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=False),
                                        nn.BatchNorm2d(256),
                                        nn.ReLU(),
-                                       nn.Conv2d(256, n_classes, kernel_size=1, stride=1))
+                                       nn.Conv2d(256, out_channels, kernel_size=1, stride=1))
 
     def forward(self, input):
         x, low_level_features = self.xception_features(input)
@@ -407,7 +407,7 @@ def get_10x_lr_params(model):
 
 
 if __name__ == "__main__":
-    model = DeepLabv3_plus(nInputChannels=3, n_classes=1, os=16, pretrained=False, _print=True)
+    model = DeepLabv3_plus_xception(nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True)
     model.eval()
     image = torch.randn(1, 3, 256, 256)
     with torch.no_grad():

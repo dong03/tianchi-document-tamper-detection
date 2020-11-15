@@ -9,7 +9,9 @@ import random
 import torch.backends.cudnn as cudnn
 import numpy as np
 from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0
-from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0, ResUnet
+from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0,get_efficientunet_b0_root,get_efficientunet_b3_root
+from model.deeplabv3p_xception import DeepLabv3_plus_xception
+from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
 import argparse
 from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,ReconstructionLoss
@@ -32,7 +34,7 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate, default=0.01')
-parser.add_argument('--gpu_id', type=int, default=2, help='GPU ID')
+parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
 parser.add_argument('--resume', type=str, default='none', help="choose a epochs to resume from (0 to train from scratch)")
 parser.add_argument('--outf', default='/data/dongchengbo/tianchi_checkpoints', help='folder to output images and model checkpoints')
 parser.add_argument('--prefix', type=str, required=True)
@@ -88,20 +90,28 @@ if __name__ == "__main__":
         if "decoder" in opt.prefix:
             model = get_efficientunet_d_b0(out_channels=1, pretrained=True)
             print("using model: efficientunet_d_b0")
-        else:
+        elif 'root' in opt.prefix:
+            model = get_efficientunet_b0_root(out_channels=1, pretrained=True)
+            print("using model: get_efficientunet_b0_root")
+        elif 'channel' in opt.prefix:
             model = get_efficientunet_b0(out_channels=1, pretrained=True)
-            print("using model: efficientunet_b0")
+            print("using model: get_efficientunet_b0_channel")
     elif 'b3' in opt.prefix:
         if "decoder" in opt.prefix:
             model = get_efficientunet_d_b3(out_channels=1, pretrained=True)
             print("using model: efficientunet_d_b3")
-        else:
+        elif 'root' in opt.prefix:
+            model = get_efficientunet_b3_root(out_channels=1, pretrained=True)
+            print("using model: get_efficientunet_b3_root")
+        elif 'channel' in opt.prefix:
             model = get_efficientunet_b3(out_channels=1, pretrained=True)
-            print("using model: efficientunet_b3")
+            print("using model: efficientunet_b3_channel")
     elif 'res' in opt.prefix:
-        model = ResUnet(out_channels=1)
+        model = DeepLabv3_plus_res101(out_channels=1, pretrained=True)
+    elif 'xception' in opt.prefix:
+        model = DeepLabv3_plus_xception(out_channels=1, pretrained=True)
     else:
-        print("must have model_type in prefix(b0/b3")
+        print("must have model_type in prefix[b0,b3,res,xception]")
         sys.exit()
 
     bce_loss_fn = SegmentationLoss()
@@ -275,16 +285,16 @@ if __name__ == "__main__":
             #                  dataformats='HW')
 
             #'''
-            if epoch % 10 == 0:
-                os.makedirs(os.path.join(model_savedir,'test_image_%d'%epoch), exist_ok=True)
-                progbar = Progbar(len(test_img_list),
-                                  stateful_metrics=['epoch', 'config', 'lr'])
-                for ix, img_path in enumerate(test_img_list):
-                    img = cv2.imread(img_path)
-
-                    seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=opt.batchSize)
-                    np.save(os.path.join(model_savedir,'test_image_%d'%epoch,os.path.split(img_path)[-1].split('.')[0]+ '.npy'),seg.astype(np.uint8))
-                    progbar.add(1, values=[('epoch', epoch)])
+            # if epoch % 10 == 0:
+            #     os.makedirs(os.path.join(model_savedir,'test_image_%d'%epoch), exist_ok=True)
+            #     progbar = Progbar(len(test_img_list),
+            #                       stateful_metrics=['epoch', 'config', 'lr'])
+            #     for ix, img_path in enumerate(test_img_list):
+            #         img = cv2.imread(img_path)
+            #
+            #         seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=opt.batchSize)
+            #         np.save(os.path.join(model_savedir,'test_image_%d'%epoch,os.path.split(img_path)[-1].split('.')[0]+ '.npy'),seg.astype(np.uint8))
+            #         progbar.add(1, values=[('epoch', epoch)])
 
             #'''
 
