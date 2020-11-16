@@ -20,7 +20,7 @@ anchors = [(384, 384), (320, 320)]
 types = ["384_384", "320_320"]
 max_anchors_size = 384
 min_anchors_size = 320
-
+stride = 8
 # anchors = [(320, 320), (256, 256)]
 # types = ["320_320", "256_256"]
 # max_anchors_size = 320

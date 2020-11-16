@@ -88,8 +88,8 @@ if __name__ == "__main__":
     cudnn.benchmark = True
     if 'b0' in opt.prefix:
         if "decoder" in opt.prefix:
-            model = get_efficientunet_d_b0(out_channels=1, pretrained=True)
-            print("using model: efficientunet_d_b0")
+            model = get_efficientunet_d_b0(out_channels=1, pretrained=True,cc=int('cc' in opt.prefix))
+            print("using model: efficientunet_d_b0, criss_cross: %d"%(int('cc' in opt.prefix)))
         elif 'root' in opt.prefix:
             model = get_efficientunet_b0_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b0_root")
@@ -98,8 +98,8 @@ if __name__ == "__main__":
             print("using model: get_efficientunet_b0_channel")
     elif 'b3' in opt.prefix:
         if "decoder" in opt.prefix:
-            model = get_efficientunet_d_b3(out_channels=1, pretrained=True)
-            print("using model: efficientunet_d_b3")
+            model = get_efficientunet_d_b3(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
+            print("using model: efficientunet_d_b3, criss_cross: %d"%(int('cc' in opt.prefix)))
         elif 'root' in opt.prefix:
             model = get_efficientunet_b3_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b3_root")
@@ -107,7 +107,8 @@ if __name__ == "__main__":
             model = get_efficientunet_b3(out_channels=1, pretrained=True)
             print("using model: efficientunet_b3_channel")
     elif 'res' in opt.prefix:
-        model = DeepLabv3_plus_res101(out_channels=1, pretrained=True)
+        model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
+        print("using model: deeplab_v3_res, criss_cross: %d" % (int('cc' in opt.prefix)))
     elif 'xception' in opt.prefix:
         model = DeepLabv3_plus_xception(out_channels=1, pretrained=True)
     else:

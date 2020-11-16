@@ -5,7 +5,7 @@ from model.layers import *
 from model.efficientnet import EfficientNet
 import pdb
 import torchvision
-
+from model.criss_cross import CrissCrossAttention
 __all__ = ['EfficientUnet', 'get_efficientunet_d_b0', 'get_efficientunet_d_b3']
 
 
@@ -271,10 +271,13 @@ class EfficientUnet_0_3(nn.Module):
 
 
 class EfficientUnet(nn.Module):
-    def __init__(self, encoder, out_channels=1):
+    def __init__(self, encoder, out_channels=1,cc=0):
         super().__init__()
 
         self.encoder = encoder
+        if cc:
+            self.criss_cross = CrissCrossAttention(self.n_channels)
+        self.cc = cc
 
         self.out_conv = nn.Conv2d(self.n_channels,self.size[6],kernel_size=1)
         self.final_conv = nn.Conv2d(self.size[0], out_channels, kernel_size=1)
@@ -367,6 +370,8 @@ class EfficientUnet(nn.Module):
             if ix in self.block_ix:
                 results.append(x)
         x = out_encoder(x)
+        if self.cc:
+            x = self.criss_cross(x)
         return x, results, in_encoder_x
 
     def forward(self, x):
@@ -405,50 +410,15 @@ def get_efficientunet_d_b0(out_channels=2, pretrained=True):
     model = EfficientUnet(encoder, out_channels=out_channels)
     return model
 
-
-def get_efficientunet_b1(out_channels=2,  pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b1', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
-
-
-def get_efficientunet_b2(out_channels=2, pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b2', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
-
-
-def get_efficientunet_d_b3(out_channels=2, pretrained=True):
+def get_efficientunet_d_b3(out_channels=2, pretrained=True, cc=0):
     encoder = EfficientNet.encoder('efficientnet-b3', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
+    model = EfficientUnet(encoder, out_channels=out_channels, cc=cc)
     return model
 
 
-def get_efficientunet_b4(out_channels=2,  pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b4', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
-
-
-def get_efficientunet_b5(out_channels=2,  pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b5', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
-
-
-def get_efficientunet_b6(out_channels=2, pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b6', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
-
-
-def get_efficientunet_b7(out_channels=2,  pretrained=True):
-    encoder = EfficientNet.encoder('efficientnet-b7', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
-    return model
 
 if __name__ == '__main__':
-    model = get_efficientunet_d_b3(out_channels=1)
+    model = get_efficientunet_d_b3(out_channels=1,cc=1)
     print(model.block_ix)
     #model = ResUnet(out_channels=1)
     inp = torch.randn((2,3,256,256))

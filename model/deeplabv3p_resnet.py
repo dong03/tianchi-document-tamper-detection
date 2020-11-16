@@ -1,8 +1,11 @@
+import sys
+sys.path.insert(0,'..')
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
+from model.criss_cross import CrissCrossAttention
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -182,7 +185,7 @@ class ASPP_module(nn.Module):
 
 
 class DeepLabv3_plus_res101(nn.Module):
-    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True):
+    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True, cc=0):
         if _print:
             print("Constructing DeepLabv3+ model...")
             print("Number of classes: {}".format(out_channels))
@@ -200,6 +203,9 @@ class DeepLabv3_plus_res101(nn.Module):
             rates = [1, 12, 24, 36]
         else:
             raise NotImplementedError
+        self.cc = cc
+        if self.cc:
+            self.criss_cross = CrissCrossAttention(2048)
 
         self.aspp1 = ASPP_module(2048, 256, rate=rates[0])
         self.aspp2 = ASPP_module(2048, 256, rate=rates[1])
@@ -230,6 +236,8 @@ class DeepLabv3_plus_res101(nn.Module):
 
     def forward(self, input):
         x, low_level_features = self.resnet_features(input)
+        if self.cc:
+            x = self.criss_cross(x)
         x1 = self.aspp1(x)
         x2 = self.aspp2(x)
         x3 = self.aspp3(x)
@@ -298,7 +306,7 @@ def get_10x_lr_params(model):
 
 
 if __name__ == "__main__":
-    model = DeepLabv3_plus_res101(nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True)
+    model = DeepLabv3_plus_res101(nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True,cc=1)
     model.eval()
     image = torch.randn(1, 3, 256, 256)
     with torch.no_grad():
