@@ -9,7 +9,8 @@ import random
 import torch.backends.cudnn as cudnn
 import numpy as np
 from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0
-from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0,get_efficientunet_b0_root,get_efficientunet_b3_root
+from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0,get_efficientunet_b0_root,get_efficientunet_b3_root, \
+    get_efficientunet_b0_6dlayers, get_efficientunet_b3_6dlayers
 from model.deeplabv3p_xception import DeepLabv3_plus_xception
 from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
@@ -94,8 +95,12 @@ if __name__ == "__main__":
             model = get_efficientunet_b0_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b0_root")
         elif 'channel' in opt.prefix:
-            model = get_efficientunet_b0(out_channels=1, pretrained=True)
-            print("using model: get_efficientunet_b0_channel")
+            if '6dlayers' in opt.prefix:
+                model = get_efficientunet_b0_6dlayers(out_channels=1, pretrained=True)
+                print("using model: get_efficientunet_b0_channel_6dlayers")
+            else:
+                model = get_efficientunet_b0(out_channels=1, pretrained=True)
+                print("using model: get_efficientunet_b0_channel_4dlayers")
     elif 'b3' in opt.prefix:
         if "decoder" in opt.prefix:
             model = get_efficientunet_d_b3(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
@@ -104,8 +109,12 @@ if __name__ == "__main__":
             model = get_efficientunet_b3_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b3_root")
         elif 'channel' in opt.prefix:
-            model = get_efficientunet_b3(out_channels=1, pretrained=True)
-            print("using model: efficientunet_b3_channel")
+            if '6dlayers' in opt.prefix:
+                model = get_efficientunet_b3_6dlayers(out_channels=1, pretrained=True)
+                print("using model: get_efficientunet_b3_channel_6dlayers")
+            else:
+                model = get_efficientunet_b3(out_channels=1, pretrained=True)
+                print("using model: get_efficientunet_b3_channel_4dlayers")
     elif 'res' in opt.prefix:
         model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
         print("using model: deeplab_v3_res, criss_cross: %d" % (int('cc' in opt.prefix)))

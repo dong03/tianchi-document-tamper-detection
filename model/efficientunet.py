@@ -405,9 +405,9 @@ class EfficientUnet(nn.Module):
         return x
 
 
-def get_efficientunet_d_b0(out_channels=2, pretrained=True):
+def get_efficientunet_d_b0(out_channels=2, pretrained=True, cc=0):
     encoder = EfficientNet.encoder('efficientnet-b0', pretrained=pretrained)
-    model = EfficientUnet(encoder, out_channels=out_channels)
+    model = EfficientUnet(encoder, out_channels=out_channels, cc=cc)
     return model
 
 def get_efficientunet_d_b3(out_channels=2, pretrained=True, cc=0):
