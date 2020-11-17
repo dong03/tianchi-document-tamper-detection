@@ -8,7 +8,8 @@ import json
 import random
 import torch.backends.cudnn as cudnn
 import numpy as np
-from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0
+from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0, \
+    get_efficientunet_d_b0_6dlayers, get_efficientunet_d_b3_6dlayers
 from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0,get_efficientunet_b0_root,get_efficientunet_b3_root, \
     get_efficientunet_b0_6dlayers, get_efficientunet_b3_6dlayers
 from model.deeplabv3p_xception import DeepLabv3_plus_xception
@@ -89,8 +90,12 @@ if __name__ == "__main__":
     cudnn.benchmark = True
     if 'b0' in opt.prefix:
         if "decoder" in opt.prefix:
-            model = get_efficientunet_d_b0(out_channels=1, pretrained=True,cc=int('cc' in opt.prefix))
-            print("using model: efficientunet_d_b0, criss_cross: %d"%(int('cc' in opt.prefix)))
+            if '6dlayers' in opt.prefix:
+                model = get_efficientunet_d_b0_6dlayers(out_channels=1, pretrained=True)
+                print("using model: efficientunet_d_b0_6dlayers")
+            else:
+                model = get_efficientunet_d_b0(out_channels=1, pretrained=True,cc=int('cc' in opt.prefix))
+                print("using model: efficientunet_d_b0, criss_cross: %d"%(int('cc' in opt.prefix)))
         elif 'root' in opt.prefix:
             model = get_efficientunet_b0_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b0_root")
@@ -103,8 +108,12 @@ if __name__ == "__main__":
                 print("using model: get_efficientunet_b0_channel_4dlayers")
     elif 'b3' in opt.prefix:
         if "decoder" in opt.prefix:
-            model = get_efficientunet_d_b3(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
-            print("using model: efficientunet_d_b3, criss_cross: %d"%(int('cc' in opt.prefix)))
+            if '6dlayers' in opt.prefix:
+                model = get_efficientunet_d_b3_6dlayers(out_channels=1, pretrained=True)
+                print("using model: efficientunet_d_b3_6dlayers")
+            else:
+                model = get_efficientunet_d_b3(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
+                print("using model: efficientunet_d_b3, criss_cross: %d"%(int('cc' in opt.prefix)))
         elif 'root' in opt.prefix:
             model = get_efficientunet_b3_root(out_channels=1, pretrained=True)
             print("using model: get_efficientunet_b3_root")
