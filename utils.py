@@ -21,10 +21,15 @@ cv2.setNumThreads(0)
 # max_anchors_size = 320
 # min_anchors_size = 256
 
-anchors = [(521, 512), (512, 512)]
-types = ["512_512", "512_512"]
-max_anchors_size = 512
-min_anchors_size = 512
+# anchors = [(521, 512), (512, 512)]
+# types = ["512_512", "512_512"]
+# max_anchors_size = 512
+# min_anchors_size = 512
+anchors = [(384, 384), (320, 320)]
+types = ["384_384", "320_320"]
+max_anchors_size = 384
+min_anchors_size = 320
+
 stride = 8
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
