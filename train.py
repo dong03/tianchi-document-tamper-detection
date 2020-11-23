@@ -20,7 +20,7 @@ from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,Re
 from dataset import DeepFakeClassifierDataset, WholeDataset
 from torch.utils.data import DataLoader
 from utils import caculate_f1iou, AverageMeter, Progbar
-from train_tools import run_iter, inference_single
+from train_tools import run_iter, inference_single, run_validation
 import cv2
 import pdb
 import torch.nn as nn
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 model = get_efficientunet_b3(out_channels=1, pretrained=True)
                 print("using model: get_efficientunet_b3_channel_4dlayers")
     elif 'res' in opt.prefix:
-        model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix))
+        model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=int('cc' in opt.prefix),ela=int('ela' in opt.prefix))
         print("using model: deeplab_v3_res, criss_cross: %d" % (int('cc' in opt.prefix)))
     elif 'xception' in opt.prefix:
         model = DeepLabv3_plus_xception(out_channels=1, pretrained=True)
@@ -156,14 +156,24 @@ if __name__ == "__main__":
     # val_mask_list =["%s/%d.png"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_mask',i) for i in range(1201,1555)]
     test_img_list = ["%s/%d.jpg"%('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/test',i) for i in range(1,1501)]
 
-    with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/val_list.txt", "r") as f:
-        val_img_list = f.readlines()
-    with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_list.txt", "r") as f:
+    # with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/val_list.txt", "r") as f:
+    #     val_img_list = f.readlines()
+    # with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/train_list.txt", "r") as f:
+    #     train_img_list = f.readlines()
+    with open('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_train_ori.txt','r') as f:
         train_img_list = f.readlines()
+    with open('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_val_ori.txt','r') as f:
+        val_img_list = f.readlines()
     val_img_list = [each.strip("\n") for each in val_img_list]
     val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list]
     train_img_list = [each.strip("\n") for each in train_img_list]
     train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list]
+
+    with open('/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_val_book.txt', "r") as f:
+        bookval_img_list = f.readlines()
+    bookval_img_list = [each.strip("\n") for each in bookval_img_list]
+    bookval_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in bookval_img_list]
+
     print(len(train_img_list))
     print(len(val_img_list))
     annotation = {"img": train_img_list, "mask": train_mask_list}
@@ -173,22 +183,13 @@ if __name__ == "__main__":
         batch_size=1,
         transforms=create_train_transforms())
 
-    if False:#opt.gpu_num > 1:
-        train_data_loader = DataLoader(
-            data_train,
-            batch_size=1,
-            pin_memory=True,
-            drop_last=True,
-            sampler=DistributedSampler(data_val))
-
-    else:
-        train_data_loader = DataLoader(
-            data_train,
-            batch_size=opt.batchSize,
-            num_workers=8,
-            pin_memory=True,
-            shuffle=True,
-            drop_last=True)
+    train_data_loader = DataLoader(
+        data_train,
+        batch_size=opt.batchSize,
+        num_workers=8,
+        pin_memory=True,
+        shuffle=True,
+        drop_last=True)
 
 
     print("train_set size: %d,%d | val_set size: %d"%(len(data_train),len(train_data_loader), len(val_img_list)))
@@ -203,15 +204,15 @@ if __name__ == "__main__":
         checkpoint = torch.load(opt.resume,map_location='cpu')
         model.load_state_dict({re.sub("^module.", "", k): v for k, v in checkpoint['model_dict'].items()})
         model.train(mode=True)
-        optimizer.load_state_dict(checkpoint['optim_dict'])
+        #optimizer.load_state_dict(checkpoint['optim_dict'])
         awl.load_state_dict(checkpoint['awl'])
         start_epoch = checkpoint['epoch']
         board_num = checkpoint['board_num'] + 1
-        if opt.gpu_id >= 0:
-            for state in optimizer.state.values():
-                for k, v in state.items():
-                    if isinstance(v, torch.Tensor):
-                        state[k] = v.cuda()
+        # if opt.gpu_id >= 0:
+        #     for state in optimizer.state.values():
+        #         for k, v in state.items():
+        #             if isinstance(v, torch.Tensor):
+        #                 state[k] = v.cuda()
         print("load %s finish"%(os.path.basename(opt.resume)))
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -249,40 +250,22 @@ if __name__ == "__main__":
         ########################################################################
         # do checkpointing & validation
         #
-        # if epoch %2 == 0:
-        #     torch.save({
-        #         'epoch': epoch,
-        #         'model_dict':model.state_dict(),
-        #         'optim_dict':optimizer.state_dict(),
-        #         'board_num':board_num,
-        #         'awl':awl.state_dict()
-        #     }, os.path.join(model_savedir,'model_%d.pt'%epoch))
+        if 'save' in opt.prefix and epoch %1 == 0:
+            torch.save({
+                'epoch': epoch,
+                'model_dict':model.state_dict(),
+                'optim_dict':optimizer.state_dict(),
+                'board_num':board_num,
+                'awl':awl.state_dict()
+            }, os.path.join(model_savedir,'model_%d.pt'%epoch))
         model.eval()
         awl.eval()
 
         with torch.no_grad():
-            f1s, ious = 0, 0
-            progbar = Progbar(len(val_img_list),
-                              stateful_metrics=['epoch', 'config', 'lr'])
-            for ix, (img_path, mask_path) in enumerate(zip(val_img_list, val_mask_list)):
-                img = cv2.imread(img_path)
-                mask = cv2.imread(mask_path,0)
-                seg = inference_single(fake_img=img,model=model,th=opt.th,remove=opt.remove,batch_size=opt.batchSize)
-                if ix % 60 == 0:
-                    cv2.imwrite(os.path.join(model_savedir,os.path.split(mask_path)[-1]),seg)
-                f1,iou = caculate_f1iou(seg, mask)
-                f1s += f1
-                ious += iou
-                progbar.add(1, values=[('epoch', epoch),
-                                          ('f1', f1),
-                                          ('iou',iou),
-                                          ('score', f1+iou),])
-            f1_avg = f1s/len(val_img_list)
-            iou_avg = ious/len(val_img_list)
-            print("f1_avg: %.4f iou_avg: %.4f" % (f1_avg,iou_avg ))
-
-            if iou_avg + f1_avg > best_score:
-                best_score = iou_avg + f1_avg
+            ori_score = run_validation(val_img_list, val_mask_list, model, model_savedir, opt, epoch, 'ori')
+            book_score = run_validation(bookval_img_list,bookval_mask_list,model,model_savedir,opt,epoch,'book')
+            if ori_score > best_score:
+                best_score = ori_score
                 torch.save({
                     'epoch': epoch,
                     'model_dict': model.state_dict(),
@@ -293,21 +276,12 @@ if __name__ == "__main__":
                 }, os.path.join(model_savedir, 'model_best.pt'))
 
 
-            writer.add_scalars(opt.prefix, {"score":iou_avg + f1_avg,"bst_s": best_score},epoch)
+            writer.add_scalars(opt.prefix, {"score":ori_score,"bst_s": best_score, "book_s": book_score},epoch)
             with open("/data/dongchengbo/tianchi_output/all_scores/%s.txt"%opt.prefix,'a') as f:
-                f.write("%f\n"%(iou_avg + f1_avg))
+                f.write("%f\n"%(ori_score))
 
-            print('[Epoch %d] Train: bce: %.4f  focal: %.4f  dce: %.4f  rect:%.4f |score:%.4f bst:%.4f'
-            % (epoch, loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, iou_avg + f1_avg, best_score))
-
-            # writer.add_image('fake_seg',
-            #                  np.array(fake_seg),
-            #                  global_step=epoch,
-            #                  dataformats='HW')
-            # writer.add_image('fake_mask',
-            #                  np.array(fake_mask),
-            #                  global_step=epoch,
-            #                  dataformats='HW')
+            print('[Epoch %d] Train: bce: %.4f  focal: %.4f  dce: %.4f  rect:%.4f |ori_score:%.4f bst:%.4f book_s:%.4f'
+            % (epoch, loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, ori_score, best_score, book_score))
 
             #'''
             # if epoch % 10 == 0:

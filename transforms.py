@@ -109,13 +109,13 @@ def create_train_transforms():
         # GaussianBlur(blur_limit=3, p=0.2),
         HorizontalFlip(p=0.3),
         Flip(p=0.3),
-        # OneOf([RandomBrightnessContrast(),
-        #        FancyPCA(),
-        #        HueSaturationValue(),
-        #        CLAHE(clip_limit=2),
-        #        IAASharpen(),
-        #        IAAEmboss(),
-        #        ], p=0.7),
+        OneOf([RandomBrightnessContrast(),
+               FancyPCA(),
+               HueSaturationValue(),
+               CLAHE(clip_limit=2),
+               IAASharpen(),
+               IAAEmboss(),
+               ], p=0.7),
     ]
     )
 
@@ -160,7 +160,8 @@ def direct_val(imgs):
                  "std": [0.229, 0.224, 0.225]}
 
     for anchor_i in range(len(imgs)):
-        imgs[anchor_i] = img_to_tensor(cv2.cvtColor(imgs[anchor_i], cv2.COLOR_BGR2RGB), normalize).unsqueeze(0)
+        #imgs[anchor_i] = img_to_tensor(cv2.cvtColor(imgs[anchor_i], cv2.COLOR_BGR2RGB), normalize).unsqueeze(0)
+        imgs[anchor_i] = img_to_tensor(imgs[anchor_i], normalize).unsqueeze(0)
     imgs = torch.cat(imgs)
 
     return imgs

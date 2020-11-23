@@ -6,6 +6,7 @@ import json
 import shutil
 import numpy as np
 from tqdm import tqdm
+from apex import amp
 import torch.nn as nn
 from utils import Progbar,caculate_f1iou
 import torch.backends.cudnn as cudnn
@@ -67,7 +68,7 @@ elif 'b3' in opt.prefix:
         model = get_efficientunet_b3(out_channels=1, pretrained=True)
         print("using model: efficientunet_b3")
 elif 'res' in opt.prefix:
-    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True)
+    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=0,ela=int('ela' in opt.prefix))
 elif 'xception' in opt.prefix:
     model = DeepLabv3_plus_xception(out_channels=1, pretrained=True)
 else:
@@ -87,8 +88,12 @@ else:
     sys.exit()
 
 model.cuda()
+amp.register_float_function(torch, 'sigmoid')
+
+model = amp.initialize(models=model, opt_level='O1', loss_scale='dynamic')
 model = nn.DataParallel(model)
 model.eval()
+
 
 if opt.sub:
     with torch.no_grad():
@@ -96,7 +101,7 @@ if opt.sub:
                           stateful_metrics=['epoch', 'config', 'lr'])
         for ix, (img_path) in enumerate(img_list):
             img = cv2.imread(img_path)
-            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=448)
+            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=512)
 
             np.save(os.path.join(save_path,
                                  os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
@@ -110,7 +115,7 @@ else:
         for ix, (img_path, mask_path) in enumerate(zip(val_img_list, val_mask_list)):
             img = cv2.imread(img_path)
             mask = cv2.imread(mask_path, 0)
-            seg = seg = inference_single(fake_img=img, model=model, th=opt.th, remove=opt.remove, batch_size=256)
+            seg = inference_single(fake_img=img, model=model, th=opt.th, remove=opt.remove, batch_size=128)
             f1, iou = caculate_f1iou(seg, mask)
             f1s += f1
             ious += iou

@@ -145,7 +145,7 @@ class WholeDataset(DeepFakeClassifierDataset):
 
         self.img_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['img']]
         self.mask_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['mask']]
-
+        self.book_ix = [ix for ix in range(len(self.mask_base)) if np.max(self.mask_base[ix]) == 0]
         self.fake_ix, self.real_ix  = [], []
         for img_ix, (img, mask) in tqdm(enumerate(zip(self.img_base,self.mask_base))):
             fake_small_ix, fake_big_ix,real_small_ix,real_big_ix = self.load_sample(img,mask)
@@ -162,7 +162,7 @@ class WholeDataset(DeepFakeClassifierDataset):
     def load(self,img_ix, small_ix, big_ix):
         img = self.img_base[img_ix]
         mask = self.mask_base[img_ix]
-        if random.random() < 0.1 and self.transforms:
+        if random.random() < 0.5 and self.transforms:
             data = self.transforms(image=img,mask=mask)
             img = data["image"]
             mask = data['mask']
@@ -190,11 +190,21 @@ class WholeDataset(DeepFakeClassifierDataset):
         safe_ix = index % len(self.real_ix)
         img_ix, small_ix, big_ix = self.real_ix[safe_ix]
         s_img, s_mask, b_img = self.load(img_ix, small_ix, big_ix)
+        real_lb = 0
+        if img_ix in self.book_ix:
+            if random.random() < 0.7:
+                w = random.randint(32,120)
+                h = random.randint(32,120)
+                init_x, init_y = random.randint(0,319-w),random.randint(0,319-h)
+                s_img[:,init_x:init_x+w,init_y:init_y+h] = small_imgs[0][:,:,init_x:init_x+w,init_y:init_y+h][0]
+                s_mask[:,init_x:init_x+w,init_y:init_y+h] = 1.0
+                real_lb = 1
+
         small_imgs.append(s_img.unsqueeze(0))
         small_masks.append(s_mask.unsqueeze(0))
         big_imgs.append(b_img.unsqueeze(0))
 
-        return torch.cat(small_imgs), torch.cat(small_masks), torch.cat(big_imgs), torch.tensor([1,0])
+        return torch.cat(small_imgs), torch.cat(small_masks), torch.cat(big_imgs), torch.tensor([1,real_lb])
 
         # self.normalize = normalize
         # self.transforms = transforms

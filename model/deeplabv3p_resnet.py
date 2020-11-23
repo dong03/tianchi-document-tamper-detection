@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 from model.criss_cross import CrissCrossAttention
+import numpy as np
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -141,10 +142,20 @@ class ResNet(nn.Module):
         model_dict = {}
         state_dict = self.state_dict()
         for k, v in pretrain_dict.items():
-            if k in state_dict:
+            if k in state_dict and 'conv1' not in k:
                 model_dict[k] = v
         state_dict.update(model_dict)
-        self.load_state_dict(state_dict)
+        # import pdb
+        # pdb.set_trace()
+        try:
+            self.load_state_dict(state_dict,strict=False)
+        except:
+            model_dict = {}
+            for k, v in pretrain_dict.items():
+                if k in state_dict and 'conv1' not in k:
+                    model_dict[k] = v
+            state_dict.update(model_dict)
+            self.load_state_dict(state_dict, strict=False)
 
 def ResNet101(nInputChannels=3, os=16, pretrained=False):
     model = ResNet(nInputChannels, Bottleneck, [3, 4, 23, 3], os, pretrained=pretrained)
@@ -185,14 +196,13 @@ class ASPP_module(nn.Module):
 
 
 class DeepLabv3_plus_res101(nn.Module):
-    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True, cc=0):
-        if _print:
-            print("Constructing DeepLabv3+ model...")
-            print("Number of classes: {}".format(out_channels))
-            print("Output stride: {}".format(os))
-            print("Number of Input Channels: {}".format(nInputChannels))
-        super(DeepLabv3_plus_res101, self).__init__()
+    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True, cc=0, ela=0):
 
+        super(DeepLabv3_plus_res101, self).__init__()
+        self.ela = ela
+        if self.ela:
+            self.filters = self.SRMLayer()
+            nInputChannels = 6
         # Atrous Conv
         self.resnet_features = ResNet101(nInputChannels, os, pretrained=pretrained)
 
@@ -233,8 +243,42 @@ class DeepLabv3_plus_res101(nn.Module):
                                        nn.BatchNorm2d(256),
                                        nn.ReLU(),
                                        nn.Conv2d(256, out_channels, kernel_size=1, stride=1))
+        if _print:
+            print("Constructing DeepLabv3+ model...")
+            print("Number of classes: {}".format(out_channels))
+            print("Output stride: {}".format(os))
+            print("Number of Input Channels: {}".format(nInputChannels))
+    def SRMLayer(self):
+        q = [4.0, 12.0, 2.0]
+        filter1 = [[0, 0, 0, 0, 0],
+                   [0, -1, 2, -1, 0],
+                   [0, 2, -4, 2, 0],
+                   [0, -1, 2, -1, 0],
+                   [0, 0, 0, 0, 0]]
+        filter2 = [[-1, 2, -2, 2, -1],
+                   [2, -6, 8, -6, 2],
+                   [-2, 8, -12, 8, -2],
+                   [2, -6, 8, -6, 2],
+                   [-1, 2, -2, 2, -1]]
+        filter3 = [[0, 0, 0, 0, 0],
+                   [0, 0, 0, 0, 0],
+                   [0, 1, -2, 1, 0],
+                   [0, 0, 0, 0, 0],
+                   [0, 0, 0, 0, 0]]
+        filter1 = np.asarray(filter1, dtype=float) / q[0]
+        filter2 = np.asarray(filter2, dtype=float) / q[1]
+        filter3 = np.asarray(filter3, dtype=float) / q[2]
+        filters = np.asarray(
+            [[filter1, filter1, filter1], [filter2, filter2, filter2], [filter3, filter3, filter3]])  # shape=(3,3,5,5)
+        # filters = np.transpose(filters, (2,3,1,0)) #shape=(5,5,3,3)
+        filters = torch.from_numpy(filters.astype(np.float32))
+        filters = nn.Parameter(filters,requires_grad=False)
+        return filters
 
     def forward(self, input):
+        if self.ela:
+            srm = F.conv2d(input, self.filters, bias=None, stride=1, padding=2, dilation=1, groups=1)
+            input = torch.cat((input,srm),dim=1)
         x, low_level_features = self.resnet_features(input)
         if self.cc:
             x = self.criss_cross(x)
