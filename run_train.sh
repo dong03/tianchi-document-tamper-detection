@@ -2,7 +2,7 @@ clear
 GPU=$1
 PRE=$2
 # TIME=date +%-H_%-M
-rlaunch --cpu=4 --gpu=$GPU --memory=65536 -- python3 train.py \
+rlaunch --cpu=4 --gpu=$GPU --memory=86016 -- python3 train.py \
 --prefix $PRE \
 --batchSize $4 \
 --fp16 $3 \
