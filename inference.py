@@ -101,7 +101,7 @@ if opt.sub:
                           stateful_metrics=['epoch', 'config', 'lr'])
         for ix, (img_path) in enumerate(img_list):
             img = cv2.imread(img_path)
-            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=512)
+            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=256)
 
             np.save(os.path.join(save_path,
                                  os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
