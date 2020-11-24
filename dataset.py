@@ -133,37 +133,6 @@ class DeepFakeClassifierDataset(Dataset):
         torch.cuda.manual_seed_all(seed)  # gpu
         torch.backends.cudnn.deterministic = True
 
-
-class BackboneDataset(DeepFakeClassifierDataset):
-    def __init__(self,
-                 annotations,
-                 batch_size,
-                 normalize={"mean": [0.485, 0.456, 0.406],
-                            "std": [0.229, 0.224, 0.225]},
-                 transforms=None,
-                 ):
-        super().__init__(annotations,batch_size,normalize,transforms)
-        self.img_list = annotations['img']
-        self.mask_list = annotations['mask']
-
-    def __getitem__(self, ix):
-        img_path = self.img_list[ix]
-        mask_path = self.mask_list[ix]
-        img = cv2.imread(img_path)
-        mask = cv2.imread(mask_path)
-
-        if self.transforms is not None:
-            data = self.transforms(image=img,mask=mask)
-            img = data["image"]
-            mask = data['mask']
-        assert img.shape == mask.shape
-        img = img_to_tensor(img, self.normalize)
-        mask = img_to_tensor(mask)[0].unsqueeze(0)
-        return img, mask, torch.tensor([1])
-
-    def __len__(self):
-        return len(self.img_list)
-
 class WholeDataset(DeepFakeClassifierDataset):
     def __init__(self,
                  annotations,
