@@ -361,8 +361,11 @@ books_paths = ['10.png',
                '996.png']
 
 paths = [
-    '/data/dongchengbo/tianchi_draw/res320s8_ela_hardaug_randomcrop_save_rc_newlist_0.7x_wc_sig_th_0.30',
-    '/data/dongchengbo/tianchi_draw/res320_sig_660_th_0.30'
+    #'/data/dongchengbo/tianchi_draw/res320s8_ela_hardaug_randomcrop_save_rc_newlist_0.7x_wc_sig_th_0.30',
+    '/data/dongchengbo/tianchi_draw/res320_sig_660_th_0.30',
+    '/data/dongchengbo/tianchi_draw/deeplab_res_512_stride8_1.234_th_0.30',
+    '/data/dongchengbo/tianchi_draw/res320_best1.194_448_th_0.30',
+    '/data/dongchengbo/tianchi_draw/res320_0.55_448_ela_th_0.30'
     # '/data/dongchengbo/tianchi_draw/res320_660_th_0.10',
     # '/data/chenxinru/VisualSearch/tianchi_s2/s2_data/output/res_stride8_320_1.9_channel/images_0.1',
     # '/data/dongchengbo/tianchi_draw/res_stride8_320_sigmoid_th_0.10',
@@ -408,17 +411,17 @@ for i in range(len(paths)-1):
             else:
                 others_ious.append(iou)
 
-        print("bookiou%s-%s:\n"%(name1,name2),"mean: ",np.mean(book_ious)," var: ",np.var(book_ious))
-        # sns_plot = sns.distplot(book_ious)
-        # fig = sns_plot.get_figure()
-        # fig.savefig('/data/dongchengbo/tianchi_draw/book-%s_%s.png'%(name1,name2))
-        # plt.cla()
+        # print("bookiou%s-%s:\n"%(name1,name2),"mean: ",np.mean(book_ious)," var: ",np.var(book_ious))
+        # # sns_plot = sns.distplot(book_ious)
+        # # fig = sns_plot.get_figure()
+        # # fig.savefig('/data/dongchengbo/tianchi_draw/book-%s_%s.png'%(name1,name2))
+        # # plt.cla()
 
-        print("otheriou%s-%s:\n"%(name1,name2),"mean: ",np.mean(others_ious)," var: ",np.var(others_ious))
-        # sns_plot = sns.distplot(others_ious)
-        # fig = sns_plot.get_figure()
-        # fig.savefig('/data/dongchengbo/tianchi_draw/other-%s_%s.png'%(name1,name2))
-        # plt.cla()
+        # print("otheriou%s-%s:\n"%(name1,name2),"mean: ",np.mean(others_ious)," var: ",np.var(others_ious))
+        # # sns_plot = sns.distplot(others_ious)
+        # # fig = sns_plot.get_figure()
+        # # fig.savefig('/data/dongchengbo/tianchi_draw/other-%s_%s.png'%(name1,name2))
+        # # plt.cla()
 
         print("wholeiou%s-%s:\n"%(name1,name2),"mean: ",np.mean(others_ious+book_ious)," var: ",np.var(others_ious+book_ious))
         sns_plot = sns.distplot(others_ious+book_ious)

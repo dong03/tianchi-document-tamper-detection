@@ -30,11 +30,11 @@ types = ["384_384", "320_320"]
 max_anchors_size = 384
 min_anchors_size = 320
 
-anchors = [(480, 480), (448, 448)]
-types = ["480_480", "448_448"]
-max_anchors_size = 480
-min_anchors_size = 448
-stride = 8
+anchors = [(544, 544), (512, 512)]
+types = ["544_544", "512_512"]
+max_anchors_size = 544
+min_anchors_size = 512
+stride = 16
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
 logger = logging.getLogger(__file__)

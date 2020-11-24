@@ -45,11 +45,9 @@ params = vars(opt)
 params_file = os.path.join(save_path, 'params.json')
 with open(params_file, 'w') as fp:
     json.dump(params, fp, indent=4)
-if opt.part == 0:
-    img_list = ["%s/%d.jpg" % (train_path, i) for i in range(1, 751)]
-elif opt.part == 1:
-    img_list = ["%s/%d.jpg"%(train_path,i) for i in range(751,1501)]
 
+img_list = ["%s/%d.jpg" % (train_path, i) for i in range(375*opt.part+1, 375*(opt.part+1)+1)]
+print("range:",375*opt.part+1, 375*(opt.part+1)+1)
 with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/val_list.txt",'r') as f:
     val_img_list = f.readlines()
 val_img_list = [each.strip("\n") for each in val_img_list]
@@ -112,7 +110,7 @@ if opt.sub:
                 progbar.add(1, values=[('epoch', 0)])
                 continue
             img = cv2.imread(img_path)
-            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=256)
+            seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=200)
 
             np.save(os.path.join(save_path,os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
             progbar.add(1, values=[('epoch', 0)])

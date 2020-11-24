@@ -4,7 +4,8 @@ rlaunch --cpu=8 --gpu=$3 --memory=16384 -- python3 inference.py \
 --resume $4 \
 --remove 1 \
 --prefix $1 \
---sub $2
+--sub $2 \
+--part $5
 
 # cd /data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data
 # zip images.zip ./images/*
