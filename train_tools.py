@@ -5,8 +5,8 @@ import torchvision.transforms as transforms
 from transforms import direct_val, direct_val_resize
 import pdb
 from apex import amp
-from utils import Normalize_3D, UnNormalize_3D, Progbar, remove_small, img2inputs, outputs2img, patches2img, anchors, \
-    min_anchors_size, max_anchors_size, img2patches, anchors2patch, pad_img, cut_bbox, small2big, caculate_f1iou, str2bool
+from utils import Normalize_3D, UnNormalize_3D, Progbar, remove_small, patches2img, \
+    min_anchors_size, max_anchors_size, img2patches, pad_img, cut_bbox, caculate_f1iou, str2bool
 import cv2
 
 debug = 0
@@ -37,21 +37,18 @@ def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64,conf=N
     model.eval()
     with torch.no_grad():
         padded_img = pad_img(fake_img, big_size=max_anchors_size, small_size=min_anchors_size)
-        inputs_small_index, _ = img2patches(padded_img, ps=min_anchors_size, pad=False,
+        inputs_small_index, _ = img2patches(padded_img,
+                                            ps=min_anchors_size,
+                                            pad=False,
                                             shift=(max_anchors_size-min_anchors_size)//2)
 
-        outputs = []
         inputs_small = []
-        # inputs_big = []
 
         for small_index in inputs_small_index:
             input_small = cut_bbox(padded_img, small_index)
-            # input_big = cut_bbox(padded_img, big_index)
             inputs_small.append(input_small)
 
-            # print(input_big.shape)
         inputs_small = direct_val(inputs_small).cuda()
-        # inputs_big = direct_val(inputs_big).cuda()
         iter_num = len(inputs_small)//batch_size
         outputs = []
         for i in range(iter_num+1):
@@ -60,7 +57,7 @@ def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64,conf=N
             outputs_i = torch.sigmoid(outputs_i)
             outputs_i = outputs_i.detach().cpu()
             outputs += outputs_i
-        # resize = anchors[anchors_i]
+
         outputs_patch = [np.array(transform_pil(outputs[i])) for i in range(len(outputs))]
         fake_seg = patches2img(outputs_patch, fake_img.shape[0], fake_img.shape[1], ps=min_anchors_size)
         if th == 0:
@@ -103,7 +100,6 @@ def run_validation(val_img_list, val_mask_list, model, model_savedir, config, ep
 def run_iter(model, data_loader, epoch, loss_funcs,
              config, board_num, writer=None, optimizer=None, scheduler=None, device=torch.device('cuda')):
     count = 0
-
     loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = 0.0, 0.0, 0.0, 0.0
 
     bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl = loss_funcs
@@ -111,19 +107,16 @@ def run_iter(model, data_loader, epoch, loss_funcs,
                       stateful_metrics=['epoch', 'config', 'lr'])
     ix = 0
     for data in data_loader:
-        # pdb.set_trace()
         if optimizer is not None:
             optimizer.zero_grad()
 
-        small_img, small_mask, big_img, lab = data
+        small_img, small_mask, lab = data
         small_img = small_img.reshape((-1,small_img.shape[-3],small_img.shape[-2],small_img.shape[-1]))
         small_mask = small_mask.reshape((-1,small_mask.shape[-3],small_mask.shape[-2],small_mask.shape[-1]))
-        # big_img = big_img.reshape((-1,big_img.shape[-3],big_img.shape[-2],big_img.shape[-1]))
         lab = lab.reshape(-1).float()
 
         small_img = small_img.cuda()
         small_mask = small_mask.cuda()
-        # big_img = big_img.cuda()
         lab = lab.cuda()
 
         seg = run_model(model, small_img)
@@ -132,9 +125,9 @@ def run_iter(model, data_loader, epoch, loss_funcs,
         fake_ix = lab > 0.5
         real_ix = lab < 0.5
 
-        loss_bce = int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_bce =  int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
         loss_dice = int(config["train"]["loss_type"][1]) * dice_loss_fn(seg, small_mask)
-        loss_focal = int(config["train"]["loss_type"][2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_focal= int(config["train"]["loss_type"][2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
         loss_rect = int(config["train"]["loss_type"][3]) * rect_loss_fn(seg, small_mask)
 
         temp_loss = [loss_bce.cpu().detach(),loss_dice.cpu().detach(),loss_focal.cpu().detach(),loss_rect.cpu().detach()]
@@ -143,7 +136,7 @@ def run_iter(model, data_loader, epoch, loss_funcs,
             pdb.set_trace()
         else:
             loss_total = awl(temp_loss[0] * loss_bce, temp_loss[1] * loss_dice, temp_loss[2] * loss_focal,temp_loss[3]*loss_rect)
-        # pdb.set_trace()
+
         if optimizer is not None:
             if str2bool(config["train"]["fp16"]):
                 with amp.scale_loss(loss_total, optimizer) as scaled_loss:
@@ -157,15 +150,15 @@ def run_iter(model, data_loader, epoch, loss_funcs,
                                ('focal', loss_focal.item()),
                                ('dce', loss_dice.item() if not isinstance(loss_dice, int) else loss_dice),
                                ('rect', loss_rect.item())])
-        # ("lr",float(scheduler.get_lr()[-1]))
+
         if writer is not None:
             writer.add_scalars('%s' % config["train"]["prefix"],
                                {"loss_bce": loss_bce.item(),
                                 "loss_focal": loss_focal.item(),
                                 "loss_dice": loss_dice.item() if not isinstance(loss_dice, int) else loss_dice,
-                                                   "loss_rect": loss_rect.item(),
-                                                   "total_loss": loss_total.item(),
-                                                   }, board_num)
+                                "loss_rect": loss_rect.item(),
+                                "total_loss": loss_total.item(),
+                               }, board_num)
             board_num += 1
         
         loss_bce_sum += loss_bce.item()
@@ -178,12 +171,11 @@ def run_iter(model, data_loader, epoch, loss_funcs,
             torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), 1)
             optimizer.step()
             torch.cuda.synchronize()
-            scheduler.step()#(ix + epoch * max_iters)
+            scheduler.step()
 
     loss_bce_sum /= count
     loss_focal_sum /= count
     loss_dice_sum /= count
     loss_rect_sum /= count
-    # if scheduler is not None:
-    #     scheduler.step()
+
     return loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, board_num

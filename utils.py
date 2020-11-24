@@ -10,21 +10,6 @@ import pdb
 cv2.ocl.setUseOpenCL(False)
 cv2.setNumThreads(0)
 
-# anchors = [(256, 256), (96, 96), (128, 128), (96, 192), (112, 224), (224, 112), (192, 96)]
-# types = ["256_256", "96_96", "128_128", "96_192", "112_224", "224_112", "192_96"]
-# new_sizes = [[(256, 256), (128, 256), (256, 128)], [(288, 288), (160, 320), (320, 160)]]
-# anchors = [(256, 256), (96, 96)]
-# types = ["256_256", "96_96"]
-
-# anchors = [(320, 320), (256, 256)]
-# types = ["320_320", "256_256"]
-# max_anchors_size = 320
-# min_anchors_size = 256
-
-# anchors = [(521, 512), (512, 512)]
-# types = ["512_512", "512_512"]
-# max_anchors_size = 512
-# min_anchors_size = 512
 anchors = [(384, 384), (320, 320)]
 types = ["384_384", "320_320"]
 max_anchors_size = 384
@@ -36,11 +21,16 @@ max_anchors_size = 544
 min_anchors_size = 512
 
 stride = 16
-anchors = [(480, 480), (448, 448)]
-types = ["480_480", "448_448"]
-max_anchors_size = 480
-min_anchors_size = 448
-stride = 8
+
+def update_global(config):
+    global anchors
+    global types
+    global max_anchors_size
+    global min_anchors_size
+    anchors = config.anchors
+    types = config.types
+    max_anchors_size = config.max_anchors_size
+    min_anchors_size = config.min_anchors_size
 
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
@@ -61,7 +51,6 @@ def str2bool(in_str):
 def caculate_f1iou(pd, gt):
     seg_inv, gt_inv = np.logical_not(pd), np.logical_not(gt)
     true_pos = float(np.logical_and(pd, gt).sum())  # float for division
-    true_neg = np.logical_and(seg_inv, gt_inv).sum()
     false_pos = np.logical_and(pd, gt_inv).sum()
     false_neg = np.logical_and(seg_inv, gt).sum()
     f1 = 2 * true_pos / (2 * true_pos + false_pos + false_neg + 1e-6)
@@ -101,7 +90,6 @@ def small2big(sub_anchor, big_box_size):  # big_box (256, 256)
 def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_anchors_size)//2):
     global stride
     np.seterr(divide='ignore', invalid='ignore')
-    # ori_h, ori_w = img.shape[:2]
     if pad:
         img = pad_img(img, ps)
     new_h, new_w = img.shape[:2]
@@ -109,7 +97,6 @@ def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_
 
     for i in range(stride * ((new_h-shift) // ps -1) + 1):
         for j in range(stride * ((new_w-shift) // ps - 1) + 1):
-            #sub = padded_img[i*ps//2:i*ps//2 + ps,j*ps//2:j*ps//2 + ps]
             patches.append([shift+i*ps//stride,shift+j*ps//stride,shift+i*ps//stride+ ps,shift+j*ps//stride + ps])
     return patches, img
 
@@ -212,35 +199,11 @@ def outputs2img(output,ori_h,ori_w):
     return new_img
 
 
-
-# def anchors2img(anchors, ori_h, ori_w):
-#     # input [滑窗1->[anchor], 滑窗2->[anchor]]
-#     patches = [anchors2patch(anchor) for anchor in anchors]
-#     img = patches2img(patches, ori_h, ori_w)
-#     return img
-#
-# def img2anchors(img):
-#     # input: 原图
-#     # output: [win1->[anchors],win2->[anchors]]
-#     windows, padded_img = img2patches(img)
-#     ori_h, ori_w = img.shape[:2]
-#     img_h, img_w = padded_img.shape[:2]
-#
-#     anchors_seg_all = []
-#
-#     for anchor_box in windows:
-#         anchor_seg = [cut_bbox(padded_img,anchor_box)]
-#         for sub_anchor in anchors[1:]:
-#             this_box = patch2anchors(anchor_box, sub_anchor)
-#             anchor_seg.append(cut_bbox(padded_img,this_box))
-#         anchors_seg_all.append(anchor_seg)
-#     return anchors_seg_all
-
-
 def caculate_IOU(pred, gt):
     insert = pred * gt
     union = 1.0 * ((pred + gt) > 0)
     return np.sum(insert) / np.sum(union)
+
 
 def read_annotations(data_path):
     lines = map(str.strip, open(data_path).readlines())
@@ -251,12 +214,13 @@ def read_annotations(data_path):
         data.append((sample_path, label))
     return data
 
+
 def get_train_paths(args):
     train_data_path = os.path.join(args.data_path, args.train_collection, "annotations",args.train_collection + ".txt")
     val_data_path = os.path.join(args.data_path, args.val_collection, "annotations", args.val_collection + ".txt")
     model_dir = os.path.join(args.data_path, args.train_collection, "models", args.val_collection, args.config_name, "run_%d" % args.run_id)
-
     return [model_dir, train_data_path, val_data_path]
+
 
 class Normalize_3D(object):
     def __init__(self, mean, std):
@@ -273,6 +237,7 @@ class Normalize_3D(object):
             t.sub_(m).div_(s)
         return tensor
 
+
 class UnNormalize_3D(object):
     def __init__(self, mean, std):
         self.mean = mean
@@ -287,6 +252,7 @@ class UnNormalize_3D(object):
         for t, m, s in zip(tensor, self.mean, self.std):
             t.mul_(s).add_(m)
         return tensor
+
 
 class Progbar(object):
     """Displays a progress bar.
@@ -442,6 +408,7 @@ class Progbar(object):
     def add(self, n, values=None):
         self.update(self._seen_so_far + n, values)
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -472,8 +439,8 @@ class AverageMeter(object):
 
 if __name__ == "__main__":
     ## 测试img patch anchor是否正确
-    mask = cv2.imread('/home/dongchengbo/code/ClassNSeg/test_img/tianchi_img_mask.png')
-    img = cv2.imread('/home/dongchengbo/code/ClassNSeg/test_img/tianchi_fake.png')
+    mask = cv2.imread('')
+    img = cv2.imread('')
     import matplotlib.pyplot as plt
     ori_shape = img.shape
     ori_mask = mask
