@@ -4,7 +4,7 @@ from tqdm import tqdm
 import os
 from utils import remove_small
 import argparse
-
+import pdb
 parser = argparse.ArgumentParser()
 parser.add_argument('--th', type=float, default=1.5)
 parser.add_argument('--ori_img_dir',nargs='+', type=str, required=True)
@@ -18,13 +18,24 @@ def post_process(img_paths, save_dir, remove, th_std=1.5):
     mean_list = []
     std_list = []
     th_list = []
+
     for img_id in tqdm(range(1,1501)):
-        if len(img_paths) == 2:
-            img1 = np.load("%s/%d.npy"%(img_paths[0],img_id))
-            img2 = np.load("%s/%d.npy" % (img_paths[1], img_id))
-            img = np.maximum(img1,img2)
-        else:
-            img = np.load("%s/%d.npy"%(img_paths[0],img_id))
+        img = []
+        for each_path in img_paths:
+            x = np.load("%s/%d.npy"%(each_path,img_id)) / 255.0
+            x = 255 / (1 + np.exp(-(10 * x - 5)))
+            #x = np.load("%s/%d.npy" % (each_path, img_id))
+            img.append(x)
+        #pdb.set_trace()
+        img = np.array(img)
+        img = np.mean(img,axis=0)
+
+        # if len(img_paths) == 2:
+        #     img1 = np.load("%s/%d.npy"%(img_paths[0],img_id))
+        #     img2 = np.load("%s/%d.npy" % (img_paths[1], img_id))
+        #     img = np.maximum(img1,img2)
+        # else:
+        #     img = np.load("%s/%d.npy"%(img_paths[0],img_id))
         # if th_std == 0:
         #     img = 255.0 * (img > 0.5)
         #     img = img.astype(np.uint8)
