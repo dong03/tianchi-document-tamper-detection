@@ -17,7 +17,7 @@ from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
 import argparse
 from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,ReconstructionLoss
-from dataset import DeepFakeClassifierDataset, WholeDataset, BackboneDataset
+from dataset import DeepFakeClassifierDataset, WholeDataset
 from torch.utils.data import DataLoader
 from utils import caculate_f1iou, AverageMeter, Progbar
 from train_tools import run_iter, inference_single, run_validation

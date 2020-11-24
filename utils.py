@@ -30,6 +30,10 @@ types = ["384_384", "320_320"]
 max_anchors_size = 384
 min_anchors_size = 320
 
+anchors = [(480, 480), (448, 448)]
+types = ["480_480", "448_448"]
+max_anchors_size = 480
+min_anchors_size = 448
 stride = 8
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
@@ -50,7 +54,8 @@ def caculate_f1iou(pd, gt):
     cross = np.logical_and(pd, gt)
     union = np.logical_or(pd, gt)
     iou = np.sum(cross) / (np.sum(union) + 1e-6)
-
+    if np.max(pd) == np.max(gt) and np.max(pd) == 0:
+        f1,iou = 1.0,1.0
     return f1, iou
 
 

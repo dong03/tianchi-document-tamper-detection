@@ -160,8 +160,8 @@ def direct_val(imgs):
                  "std": [0.229, 0.224, 0.225]}
 
     for anchor_i in range(len(imgs)):
-        #imgs[anchor_i] = img_to_tensor(cv2.cvtColor(imgs[anchor_i], cv2.COLOR_BGR2RGB), normalize).unsqueeze(0)
-        imgs[anchor_i] = img_to_tensor(imgs[anchor_i], normalize).unsqueeze(0)
+        imgs[anchor_i] = img_to_tensor(cv2.cvtColor(imgs[anchor_i], cv2.COLOR_BGR2RGB), normalize).unsqueeze(0)
+        #imgs[anchor_i] = img_to_tensor(imgs[anchor_i], normalize).unsqueeze(0)
     imgs = torch.cat(imgs)
 
     return imgs

@@ -11,7 +11,7 @@ import torch.nn as nn
 from utils import Progbar,caculate_f1iou
 import torch.backends.cudnn as cudnn
 from model.efficientunet import get_efficientunet_d_b3, get_efficientunet_d_b0
-from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0
+from model.efficientunet_0 import get_efficientunet_b3, get_efficientunet_b0,get_efficientunet_b3_root
 from model.deeplabv3p_xception import DeepLabv3_plus_xception
 from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
@@ -28,6 +28,7 @@ parser.add_argument('--th', type=float, default=0.25)
 parser.add_argument('--remove', type=int, default=1)
 parser.add_argument('--prefix', type=str, required=True)
 parser.add_argument('--sub', type=int, required=True)
+parser.add_argument('--part', type=int, required=True)
 opt = parser.parse_args()
 
 
@@ -36,11 +37,18 @@ print(opt)
 train_path = '/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/test'
 save_path = '/data/dongchengbo/tianchi_draw/%s'%opt.prefix
 
-if os.path.exists(save_path):
-    shutil.rmtree(save_path, ignore_errors=True)
+# if os.path.exists(save_path):
+#     shutil.rmtree(save_path, ignore_errors=True)
 os.makedirs(save_path,exist_ok=True)
 
-img_list = ["%s/%d.jpg"%(train_path,i) for i in range(1,1501)]
+params = vars(opt)
+params_file = os.path.join(save_path, 'params.json')
+with open(params_file, 'w') as fp:
+    json.dump(params, fp, indent=4)
+if opt.part == 0:
+    img_list = ["%s/%d.jpg" % (train_path, i) for i in range(1, 751)]
+elif opt.part == 1:
+    img_list = ["%s/%d.jpg"%(train_path,i) for i in range(751,1501)]
 
 with open("/data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/val_list.txt",'r') as f:
     val_img_list = f.readlines()
@@ -65,7 +73,7 @@ elif 'b3' in opt.prefix:
         model = get_efficientunet_d_b3(out_channels=1, pretrained=True)
         print("using model: efficientunet_d_b3")
     else:
-        model = get_efficientunet_b3(out_channels=1, pretrained=True)
+        model = get_efficientunet_b3_root(out_channels=1, pretrained=True)
         print("using model: efficientunet_b3")
 elif 'res' in opt.prefix:
     model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=0,ela=int('ela' in opt.prefix))
@@ -79,7 +87,6 @@ if os.path.exists(opt.resume):
     checkpoint = torch.load(opt.resume, map_location='cpu')
     model.load_state_dict({re.sub("^module.", "", k): v for k, v in checkpoint['model_dict'].items()}, strict=True)
     model.eval()
-
     start_epoch = checkpoint['epoch']
     board_num = checkpoint['board_num'] + 1
     print("load %s finish" % (os.path.basename(opt.resume)))
@@ -100,11 +107,14 @@ if opt.sub:
         progbar = Progbar(len(img_list),
                           stateful_metrics=['epoch', 'config', 'lr'])
         for ix, (img_path) in enumerate(img_list):
+            if os.path.exists(os.path.join(save_path,os.path.split(img_path)[-1].split('.')[0] + '.npy')):
+                print("%s exist"%(os.path.join(save_path,os.path.split(img_path)[-1].split('.')[0] + '.npy')))
+                progbar.add(1, values=[('epoch', 0)])
+                continue
             img = cv2.imread(img_path)
             seg = inference_single(fake_img=img, model=model, th=0, remove=opt.remove, batch_size=256)
 
-            np.save(os.path.join(save_path,
-                                 os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
+            np.save(os.path.join(save_path,os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
             progbar.add(1, values=[('epoch', 0)])
 
 else:
