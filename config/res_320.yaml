@@ -1,0 +1,19 @@
+train:
+    train_path: /data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_train_ori.txt
+    val_path: /data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_val_ori.txt
+    batchSize: 128
+    imageSize: 320
+    lr: 0.001
+    outf: /data/dongchengbo/tianchi_checkpoints
+    writer_root: /data/dongchengbo/tianchi_output
+    prefix:
+    th: 0.25
+    remove: 0
+    aug: 1
+    loss_type: 1111
+    fp16: 1
+    save_step: 1
+
+test:
+    test_dir: /data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/test
+    batchSize: 128

@@ -6,10 +6,9 @@ from transforms import direct_val, direct_val_resize
 import pdb
 from apex import amp
 from utils import Normalize_3D, UnNormalize_3D, Progbar, remove_small, img2inputs, outputs2img, patches2img, anchors, \
-    min_anchors_size, max_anchors_size, img2patches, anchors2patch, pad_img, cut_bbox, small2big, caculate_f1iou
-
+    min_anchors_size, max_anchors_size, img2patches, anchors2patch, pad_img, cut_bbox, small2big, caculate_f1iou, str2bool
 import cv2
-#from utils import resize_types, new_sizes, anchors
+
 debug = 0
 
 transform_tns = transforms.Compose([
@@ -34,7 +33,7 @@ def run_model(model, inputs):
     return output
 
 
-def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64):
+def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64,conf=None):
     model.eval()
     with torch.no_grad():
         padded_img = pad_img(fake_img, big_size=max_anchors_size, small_size=min_anchors_size)
@@ -73,7 +72,8 @@ def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64):
 
     return fake_seg
 
-def run_validation(val_img_list,val_mask_list,model,model_savedir,opt,epoch,tag):
+
+def run_validation(val_img_list, val_mask_list, model, model_savedir, config, epoch):
     with torch.no_grad():
         f1s, ious = 0, 0
         progbar = Progbar(len(val_img_list),
@@ -81,7 +81,9 @@ def run_validation(val_img_list,val_mask_list,model,model_savedir,opt,epoch,tag)
         for ix, (img_path, mask_path) in enumerate(zip(val_img_list, val_mask_list)):
             img = cv2.imread(img_path)
             mask = cv2.imread(mask_path, 0)
-            seg = inference_single(fake_img=img, model=model, th=opt.th, remove=opt.remove, batch_size=opt.batchSize)
+            seg = inference_single(fake_img=img, model=model, th=float(config["train"]["th"]),
+                                   remove=str2bool(config["train"]["remove"]),
+                                   batch_size=int(config["train"]["batchSize"]))
             if ix % 60 == 0:
                 cv2.imwrite(os.path.join(model_savedir, os.path.split(mask_path)[-1]), seg)
             f1, iou = caculate_f1iou(seg, mask)
@@ -94,12 +96,12 @@ def run_validation(val_img_list,val_mask_list,model,model_savedir,opt,epoch,tag)
 
         f1_avg = f1s / len(val_img_list)
         iou_avg = ious / len(val_img_list)
-        print("%s: f1_avg: %.4f iou_avg: %.4f score: %.4f\n" % (tag, f1_avg, iou_avg,f1_avg+iou_avg))
+        print("f1_avg: %.4f iou_avg: %.4f score: %.4f\n" % (f1_avg, iou_avg, f1_avg+iou_avg))
     return f1_avg + iou_avg
 
 
 def run_iter(model, data_loader, epoch, loss_funcs,
-             opt, board_num, writer=None, optimizer=None, scheduler=None,device=torch.device('cuda')):
+             config, board_num, writer=None, optimizer=None, scheduler=None, device=torch.device('cuda')):
     count = 0
 
     loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = 0.0, 0.0, 0.0, 0.0
@@ -109,7 +111,7 @@ def run_iter(model, data_loader, epoch, loss_funcs,
                       stateful_metrics=['epoch', 'config', 'lr'])
     ix = 0
     for data in data_loader:
-        #pdb.set_trace()
+        # pdb.set_trace()
         if optimizer is not None:
             optimizer.zero_grad()
 
@@ -130,10 +132,10 @@ def run_iter(model, data_loader, epoch, loss_funcs,
         fake_ix = lab > 0.5
         real_ix = lab < 0.5
 
-        loss_bce = int(opt.loss_type[0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
-        loss_dice = int(opt.loss_type[1]) * dice_loss_fn(seg, small_mask)
-        loss_focal = int(opt.loss_type[2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
-        loss_rect = int(opt.loss_type[3]) * rect_loss_fn(seg, small_mask)
+        loss_bce = int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_dice = int(config["train"]["loss_type"][1]) * dice_loss_fn(seg, small_mask)
+        loss_focal = int(config["train"]["loss_type"][2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_rect = int(config["train"]["loss_type"][3]) * rect_loss_fn(seg, small_mask)
 
         temp_loss = [loss_bce.cpu().detach(),loss_dice.cpu().detach(),loss_focal.cpu().detach(),loss_rect.cpu().detach()]
         temp_loss = [1-int(torch.sum(torch.isnan(each)) or each<0) for each in temp_loss]
@@ -141,26 +143,26 @@ def run_iter(model, data_loader, epoch, loss_funcs,
             pdb.set_trace()
         else:
             loss_total = awl(temp_loss[0] * loss_bce, temp_loss[1] * loss_dice, temp_loss[2] * loss_focal,temp_loss[3]*loss_rect)
-        #pdb.set_trace()
+        # pdb.set_trace()
         if optimizer is not None:
-            if opt.fp16:
+            if str2bool(config["train"]["fp16"]):
                 with amp.scale_loss(loss_total, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss_total.backward()
 
         progbar.add(1, values=[('epoch', epoch),
-                                  ('loss_total', loss_total.item()),
-                                  ('bce', loss_bce.item()),
-                                  ('focal', loss_focal.item()),
-                                  ('dce', loss_dice.item() if not isinstance(
-                                      loss_dice, int) else loss_dice),
-                                  ('rect', loss_rect.item())])
+                               ('loss_total', loss_total.item()),
+                               ('bce', loss_bce.item()),
+                               ('focal', loss_focal.item()),
+                               ('dce', loss_dice.item() if not isinstance(loss_dice, int) else loss_dice),
+                               ('rect', loss_rect.item())])
         # ("lr",float(scheduler.get_lr()[-1]))
         if writer is not None:
-            writer.add_scalars('%s' % opt.prefix, {"loss_bce": loss_bce.item(),
-                                                   "loss_focal": loss_focal.item(),
-                                                   "loss_dice": loss_dice.item() if not isinstance(loss_dice, int) else loss_dice,
+            writer.add_scalars('%s' % config["train"]["prefix"],
+                               {"loss_bce": loss_bce.item(),
+                                "loss_focal": loss_focal.item(),
+                                "loss_dice": loss_dice.item() if not isinstance(loss_dice, int) else loss_dice,
                                                    "loss_rect": loss_rect.item(),
                                                    "total_loss": loss_total.item(),
                                                    }, board_num)
