@@ -35,6 +35,8 @@ types = ["480_480", "448_448"]
 max_anchors_size = 480
 min_anchors_size = 448
 stride = 8
+
+
 # resize_types = [0, 0, 0, 1, 1, 2, 2]
 
 logger = logging.getLogger(__file__)
@@ -42,6 +44,13 @@ logging.basicConfig(
     format="[%(asctime)s - %(filename)s:line %(lineno)s] %(message)s",
     datefmt='%d %b %H:%M:%S',
     level=logging.INFO)
+
+
+def str2bool(in_str):
+    if in_str in ["1", "t", "True", "true"]:
+        return True
+    elif in_str in ["0", "f", "False", "false"]:
+        return False
 
 
 def caculate_f1iou(pd, gt):
@@ -59,7 +68,6 @@ def caculate_f1iou(pd, gt):
     return f1, iou
 
 
-
 def remove_small(img):
     contours, _ = cv2.findContours(img.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     for i, cnt in enumerate(contours):
@@ -67,6 +75,7 @@ def remove_small(img):
             for ix in range(cnt.shape[0]):
                 img[cnt[ix][0][1], cnt[ix][0][0]] = 0
     return img
+
 
 def lcm(x, y): # very fast
     s = x*y
