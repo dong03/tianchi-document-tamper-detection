@@ -19,8 +19,7 @@ import torch.nn as nn
 from schedulers import create_optimizer,default_config
 from tensorboardX import SummaryWriter
 import shutil
-from torch.utils.data.distributed import DistributedSampler
-from transforms import create_train_transforms, create_val_transforms
+from transforms import create_train_transforms
 from apex import amp
 import yaml
 

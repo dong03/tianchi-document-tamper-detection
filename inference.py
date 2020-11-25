@@ -1,14 +1,12 @@
 import os
 import re
 import sys
-import pdb
-import json
 import shutil
 import numpy as np
 from tqdm import tqdm
 from apex import amp
 import torch.nn as nn
-from utils import Progbar,caculate_f1iou
+from utils import Progbar
 import torch.backends.cudnn as cudnn
 from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
