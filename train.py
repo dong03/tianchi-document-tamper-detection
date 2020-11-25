@@ -24,9 +24,8 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
 parser.add_argument('--resume', type=str, default='none', help="choose a epochs to resume from (0 to train from scratch)")
 parser.add_argument('--manualSeed', type=int, default=-1)
-parser.add_argument('--niter', type=int, default=1000)
 parser.add_argument('--gpu_num', type=int, default=1)
-parser.add_argument("--config", type=str, default="config/res_320.yaml")
+parser.add_argument("--config", type=str, default="model1")
 
 torch.backends.cudnn.benchmark = True
 
@@ -34,12 +33,14 @@ torch.backends.cudnn.benchmark = True
 if __name__ == "__main__":
     opt = parser.parse_args()
     print(opt)
-    f = open(opt.config, 'r', encoding='utf-8')
+    if not os.path.exists("../config/%s.yaml" % opt.config):
+        print("../config/%s.yaml not found." % opt.config)
+        exit()
+    f = open("../config/%s.yaml" % opt.config, 'r', encoding='utf-8')
     config = yaml.load(f.read())
     print(config)
     update_global(config, 'train')
 
-    ## TODO
     if opt.gpu_id != -1:
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(opt.manualSeed)
     cudnn.benchmark = True
 
-    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True,ela=config["train"]["ela"])
+    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, ela=int(config["train"]["ela"]))
 
     bce_loss_fn = SegmentationLoss()
     focal_loss_fn = SegFocalLoss()
@@ -149,7 +150,7 @@ if __name__ == "__main__":
     model.train()
     awl.train()
     best_f1, best_iou, best_score = 0, 0, 0
-    for epoch in range(start_epoch, config["train"]["niter"]):
+    for epoch in range(start_epoch, int(config["train"]["niter"])):
         train_data_loader.dataset.reset_seed(epoch, 777)
 
         loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = \
@@ -157,7 +158,7 @@ if __name__ == "__main__":
                      loss_funcs=(bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl),
                      optimizer=optimizer, scheduler=scheduler)
 
-        if config['train']['step_save'] and epoch % int(config["train"]["save_step"]) == 0:
+        if str2bool(config['train']['step_save']) and epoch % int(config["train"]["save_step"]) == 0:
             torch.save({
                 'epoch': epoch,
                 'model_dict': model.state_dict(),

@@ -16,14 +16,14 @@ min_anchors_size = 512
 stride = 16
 
 
-def update_global(config,type='train'):
+def update_global(config, type='train'):
     global anchors
     global max_anchors_size
     global min_anchors_size
     global stride
-    max_anchors_size = config[type]['imageSize']
-    min_anchors_size = config[type]['imageSize']
-    stride = config[type]['stride']
+    max_anchors_size = int(config[type]['imageSize'])
+    min_anchors_size = int(config[type]['imageSize'])
+    stride = int(config[type]['stride'])
     anchors = [(max_anchors_size, max_anchors_size), (min_anchors_size, min_anchors_size)]
 
 
