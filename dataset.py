@@ -66,7 +66,7 @@ class WholeDataset(Dataset):
 
         return fake_small, fake_big, real_small, real_big
 
-    def shift(self,bboxs, h, w ,stride=15):
+    def shift(self, bboxs, h, w ,stride=15):
         bbox_small, bbox_big = bboxs
         xmin, ymin, xmax, ymax = bbox_big
         shift_x = random.randint(-min(xmin,stride),min(h-xmax-1,stride))
@@ -147,7 +147,6 @@ if __name__ == "__main__":
     print("check")
     data_train = WholeDataset(
         annotations=annotation,
-        batch_size=32,
         transforms=create_train_transforms())
 
     train_data_loader = DataLoader(

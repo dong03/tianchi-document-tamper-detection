@@ -6,7 +6,6 @@ train:
     stride: 8
     lr: 0.001
     outf: /data/dongchengbo/tianchi_checkpoints
-    writer_root: /data/dongchengbo/tianchi_output
     prefix:
     th: 0.25
     remove: 0

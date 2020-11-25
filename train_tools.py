@@ -97,14 +97,12 @@ def run_validation(val_img_list, val_mask_list, model, model_savedir, config, ep
     return f1_avg + iou_avg
 
 
-def run_iter(model, data_loader, epoch, loss_funcs,
-             config, board_num, writer=None, optimizer=None, scheduler=None):
+def run_iter(model, data_loader, epoch, loss_funcs, config, optimizer=None, scheduler=None):
     count = 0
     loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = 0.0, 0.0, 0.0, 0.0
 
     bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl = loss_funcs
-    progbar = Progbar(len(data_loader),
-                      stateful_metrics=['epoch', 'config', 'lr'])
+    progbar = Progbar(len(data_loader), stateful_metrics=['epoch', 'config', 'lr'])
     ix = 0
     for data in data_loader:
         if optimizer is not None:
@@ -150,16 +148,6 @@ def run_iter(model, data_loader, epoch, loss_funcs,
                                ('focal', loss_focal.item()),
                                ('dce', loss_dice.item() if not isinstance(loss_dice, int) else loss_dice),
                                ('rect', loss_rect.item())])
-
-        if writer is not None:
-            writer.add_scalars('%s' % config["train"]["prefix"],
-                               {"loss_bce": loss_bce.item(),
-                                "loss_focal": loss_focal.item(),
-                                "loss_dice": loss_dice.item() if not isinstance(loss_dice, int) else loss_dice,
-                                "loss_rect": loss_rect.item(),
-                                "total_loss": loss_total.item(),
-                                }, board_num)
-            board_num += 1
         
         loss_bce_sum += loss_bce.item()
         loss_focal_sum += loss_focal.item()
@@ -178,4 +166,4 @@ def run_iter(model, data_loader, epoch, loss_funcs,
     loss_dice_sum /= count
     loss_rect_sum /= count
 
-    return loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, board_num
+    return loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum
