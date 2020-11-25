@@ -1,0 +1,35 @@
+model_name: model3
+describe: res320_stride8_weakaug_nocrop_noela_oldlist
+path:
+    test_dir: ../s2_data/data/test
+    model_dir: ../user_data/model_data
+    save_dir: ../user_data/temp_npy
+
+train:
+    train_path: ../user_data/data_index/train_list.txt
+    val_path: ../user_data/data_index/val_list.txt
+    batchSize: 128
+    imageSize: 320
+    stride: 8
+    lr: 0.001
+    outf: ../user_data/model_data
+    writer_root: ../user_data/tensorlog
+    th: 0.25
+    remove: 0
+    aug: 1
+    loss_type: 1111
+    fp16: 1
+    ela: 0
+    random_crop: 0
+    hard_aug: 0
+    niter: 10
+    save: 1
+    save_step: 1
+    resume: none
+
+test:
+    batchSize: 128
+    imageSize: 320
+    stride: 8
+    fp16: 1
+    ela: 0
