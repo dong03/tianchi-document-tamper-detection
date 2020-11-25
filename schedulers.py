@@ -7,7 +7,7 @@ from torch.optim.adamw import AdamW
 from torch.optim.lr_scheduler import MultiStepLR, CyclicLR
 from torch.optim.lr_scheduler import _LRScheduler
 
-default_config = {
+default_scheduler = {
 
     "batch_size": 1,
     "type": "Adam",

@@ -13,18 +13,17 @@ cv2.setNumThreads(0)
 anchors = [(544, 544), (512, 512)]
 max_anchors_size = 544
 min_anchors_size = 512
-
 stride = 16
 
 
-def update_global(con_imgsize, con_stride):
+def update_global(config,type='train'):
     global anchors
     global max_anchors_size
     global min_anchors_size
     global stride
-    max_anchors_size = con_imgsize + 32
-    min_anchors_size = con_imgsize
-    stride = con_stride
+    max_anchors_size = config[type]['imageSize']
+    min_anchors_size = config[type]['imageSize']
+    stride = config[type]['stride']
     anchors = [(max_anchors_size, max_anchors_size), (min_anchors_size, min_anchors_size)]
 
 

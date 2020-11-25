@@ -12,7 +12,9 @@ from torch.utils.data import DataLoader
 from utils import str2bool, update_global
 from train_tools import run_iter, run_validation
 import torch.nn as nn
-from schedulers import create_optimizer, default_config
+from schedulers import create_optimizer,default_scheduler
+from tensorboardX import SummaryWriter
+import shutil
 from transforms import create_train_transforms
 from apex import amp
 import yaml
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     f = open(opt.config, 'r', encoding='utf-8')
     config = yaml.load(f.read())
     print(config)
-    update_global(int(config["train"]["imageSize"]), int(config["train"]["stride"]))
+    update_global(config, 'train')
 
     ## TODO
     if opt.gpu_id != -1:
@@ -46,13 +48,21 @@ if __name__ == "__main__":
     if opt.manualSeed == -1:
         opt.manualSeed = random.randint(1, 10000)
 
-    model_savedir = os.path.join(config["train"]["outf"], config["train"]["prefix"])
+    model_savedir = os.path.join(config["train"]["outf"], config["model_name"])
     os.makedirs(model_savedir, exist_ok=True)
     params = vars(opt)
     params_file = os.path.join(model_savedir, 'params.json')
     with open(params_file, 'w') as fp:
         json.dump(params, fp, indent=4)
 
+    writer_dir = os.path.join(config["train"]["writer_root"], config["model_name"])
+
+    if os.path.exists(writer_dir):
+        shutil.rmtree(writer_dir, ignore_errors=True)
+
+    os.makedirs(writer_dir, exist_ok=True)
+    writer = SummaryWriter(logdir=writer_dir)
+    board_num = 0
     start_epoch = 0
 
     print("Random Seed: ", opt.manualSeed)
@@ -62,9 +72,7 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(opt.manualSeed)
     cudnn.benchmark = True
 
-    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True, cc=int('cc' in config["train"]["prefix"]),
-                                  ela=int('ela' in config["train"]["prefix"]))
-    print("using model: deeplab_v3_res, criss_cross: %d" % (int('cc' in config["train"]["prefix"])))
+    model = DeepLabv3_plus_res101(out_channels=1, pretrained=True,ela=config["train"]["ela"])
 
     bce_loss_fn = SegmentationLoss()
     focal_loss_fn = SegFocalLoss()
@@ -76,8 +84,6 @@ if __name__ == "__main__":
         trans = create_train_transforms()
     else:
         trans = None
-
-    test_img_list = ["%s/%d.jpg" % (config["test"]["test_dir"], i) for i in range(1, 1501)]
 
     with open(config["train"]["train_path"], 'r') as f:
         train_img_list = f.readlines()
@@ -94,7 +100,10 @@ if __name__ == "__main__":
 
     data_train = WholeDataset(
         annotations=annotation,
-        transforms=create_train_transforms())
+        transforms=create_train_transforms(),
+        random_crop=config['train']['random_crop'],
+        hard_aug=config['train']['hard_aug']
+    )
 
     train_data_loader = DataLoader(
         data_train,
@@ -106,24 +115,19 @@ if __name__ == "__main__":
 
     print("train_set size: %d,%d | val_set size: %d" % (len(data_train), len(train_data_loader), len(val_img_list)))
 
-    default_config["batch_size"] = int(config["train"]["batchSize"])
-    default_config["learning_rate"] = float(config["train"]["lr"])
-    default_config["schedule"]['params']['max_iter'] = len(train_data_loader)
-    optimizer, scheduler = create_optimizer(optimizer_config=default_config, model=model, awl=awl)
-    max_iters = default_config["schedule"]['params']['max_iter']
+    default_scheduler["batch_size"] = int(config["train"]["batchSize"])
+    default_scheduler["learning_rate"] = float(config["train"]["lr"])
+    default_scheduler["schedule"]['params']['max_iter'] = len(train_data_loader)
+    optimizer, scheduler = create_optimizer(optimizer_config=default_scheduler, model=model, awl=awl)
+    max_iters = default_scheduler["schedule"]['params']['max_iter']
 
     if os.path.exists(opt.resume):
         checkpoint = torch.load(opt.resume, map_location='cpu')
         model.load_state_dict({re.sub("^module.", "", k): v for k, v in checkpoint['model_dict'].items()})
         model.train(mode=True)
-        # optimizer.load_state_dict(checkpoint['optim_dict'])
         awl.load_state_dict(checkpoint['awl'])
         start_epoch = checkpoint['epoch']
-        # if opt.gpu_id >= 0:
-        #     for state in optimizer.state.values():
-        #         for k, v in state.items():
-        #             if isinstance(v, torch.Tensor):
-        #                 state[k] = v.cuda()
+        board_num = checkpoint['board_num'] + 1
         print("load %s finish" % (os.path.basename(opt.resume)))
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -135,19 +139,17 @@ if __name__ == "__main__":
         model = nn.DataParallel(model)
     elif opt.gpu_num > 1:
         model = nn.DataParallel(model)
+
     bce_loss_fn.cuda()
     focal_loss_fn.cuda()
     dice_loss_fn.cuda()
     rect_loss_fn.cuda()
     awl.cuda()
 
-    print(next(awl.parameters()).device)
-    print(next(model.parameters()).device)
-
     model.train()
     awl.train()
     best_f1, best_iou, best_score = 0, 0, 0
-    for epoch in range(start_epoch, opt.niter+1):
+    for epoch in range(start_epoch, config["train"]["niter"]):
         train_data_loader.dataset.reset_seed(epoch, 777)
 
         loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = \
@@ -155,7 +157,7 @@ if __name__ == "__main__":
                      loss_funcs=(bce_loss_fn, focal_loss_fn, dice_loss_fn, rect_loss_fn, awl),
                      optimizer=optimizer, scheduler=scheduler)
 
-        if 'save' in config["train"]["prefix"] and epoch % int(config["train"]["save_step"]) == 0:
+        if config['train']['step_save'] and epoch % int(config["train"]["save_step"]) == 0:
             torch.save({
                 'epoch': epoch,
                 'model_dict': model.state_dict(),
@@ -177,6 +179,7 @@ if __name__ == "__main__":
                     'best_score': best_score,
                 }, os.path.join(model_savedir, 'model_best.pt'))
 
+            writer.add_scalars(config["model_name"], {"score": val_score, "bst_s": best_score}, epoch)
             print('[Epoch %d] Train: bce: %.4f  focal: %.4f  dce: %.4f  rect:%.4f | val_score:%.4f bst:%.4f'
                   % (epoch, loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum, val_score, best_score))
 

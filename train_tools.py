@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch.utils.data
 import torchvision.transforms as transforms
-from transforms import direct_val, direct_val_resize
+from transforms import direct_val
 import pdb
 from apex import amp
 from utils import Normalize_3D, UnNormalize_3D, Progbar, remove_small, patches2img, \

@@ -1,17 +1,13 @@
 import random
-import json
 import torch
 import cv2
 import numpy as np
 from albumentations.pytorch.functional import img_to_tensor
 from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
-from utils import anchors, img2patches, patch2anchors, max_anchors_size, cut_bbox, pad_img, min_anchors_size, small2big
-
+from utils import anchors, img2patches, max_anchors_size, cut_bbox, pad_img, min_anchors_size, small2big
 from transforms import create_train_transforms
 import pdb
 import time
-import pickle
 from tqdm import tqdm
 
 class WholeDataset(Dataset):
@@ -89,7 +85,7 @@ class WholeDataset(Dataset):
     def load(self,img_ix, small_ix, big_ix):
         img = self.img_base[img_ix]
         mask = self.mask_base[img_ix]
-        if random.random() < sekf.aug_prob and self.transforms:
+        if random.random() < self.aug_prob and self.transforms:
             data = self.transforms(image=img,mask=mask)
             img = data["image"]
             mask = data['mask']
