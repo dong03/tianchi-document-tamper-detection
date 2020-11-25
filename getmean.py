@@ -2,104 +2,82 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import os
+import shutil
 from utils import remove_small
 import argparse
-import pdb
-parser = argparse.ArgumentParser()
-parser.add_argument('--th', type=float, default=1.5)
-parser.add_argument('--ori_img_dir',nargs='+', type=str, required=True)
-parser.add_argument('--save_dir', type=str, required=True)
-opt = parser.parse_args()
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--vote_th', type=float, default=0.3)
+parser.add_argument('--avg_th', type=float, default=1.35)
+parser.add_argument('--config_name',nargs='+', type=str, required=True)
+opt = parser.parse_args()
 print(opt)
 
 
-def post_process(img_paths, save_dir, remove, th_std=1.5):
-    mean_list = []
-    std_list = []
-    th_list = []
+def get_th(img, th_std):
+    img_flatten = img.flatten()
+    vimg = img_flatten[np.where(img_flatten > 0)]
+    if not len(vimg) == 0:
+        mean = np.mean(vimg)
+        std = np.std(vimg)
+        th = mean + float(th_std) * std
+    else:
+        th = 255 * 0.25
+    return th
 
+
+def post_process(img_paths, save_dir, remove, th_vote, th_avg):
     for img_id in tqdm(range(1,1501)):
-        img = []
+        imgs = []
+        ori_imgs = []
         for each_path in img_paths:
-            x = np.load("%s/%d.npy"%(each_path,img_id)) / 255.0
-            x = 255 / (1 + np.exp(-(10 * x - 5)))
-            #x = np.load("%s/%d.npy" % (each_path, img_id))
-            img.append(x)
-        #pdb.set_trace()
-        img = np.array(img)
-        img = np.mean(img,axis=0)
+            x = np.load(os.path.join(each_path,"%d.npy"%img_id)) / 255.0
+            img = 255 / (1 + np.exp(-(10 * x - 5)))
+            ori_imgs.append(img)
 
-        # if len(img_paths) == 2:
-        #     img1 = np.load("%s/%d.npy"%(img_paths[0],img_id))
-        #     img2 = np.load("%s/%d.npy" % (img_paths[1], img_id))
-        #     img = np.maximum(img1,img2)
-        # else:
-        #     img = np.load("%s/%d.npy"%(img_paths[0],img_id))
-        # if th_std == 0:
-        #     img = 255.0 * (img > 0.5)
-        #     img = img.astype(np.uint8)
-        #     if remove:
-        #         img = remove_small(img)
-        #     img_save_path = img_path.replace("/dongchengbo", "/chenxinru/VisualSearch").replace(".npy", ".png")
-        #     cv2.imwrite(img_save_path, img)
-        #     continue
-        # img = img.astype(np.float16)
-        img = img.astype(np.uint8)
-        img_flatten = img.flatten()
-        vimg = img_flatten[np.where(img_flatten > 0)]
-        # print("%d / %d" % (len(vimg), len(img_flatten)))
+            img = img.astype(np.uint8)
+            th = get_th(img,th_vote)
+            img = 255.0 * (img > th)
+            img = img.astype(np.uint8)
+            if remove:
+                img = remove_small(img)
+            imgs.append(img)
 
-        if not len(vimg) == 0:
-            mean = np.mean(vimg)
-            # print("before std")
-            std = np.std(vimg)
-            # print("after std")
-            mean_list.append(mean)
-            std_list.append(std)
-            th = mean + float(th_std) * std
-            th_list.append(th)
-        else:
-            th = 255*0.25
+        avg = np.mean(ori_imgs,axis=0)
+        avg = avg.astype(np.uint8)
+        th = get_th(avg, th_avg)
+        avg = 255.0 * (avg > th)
+        avg = avg.astype(np.uint8)
 
-        # print(th)
-        img = 255.0 * (img > th)
-        img = img.astype(np.uint8)
-        if remove:
-            img = remove_small(img)
+        imgs.append(avg)
+        if len(img_paths) % 2 == 0:
+            imgs.append(imgs[0])
 
-        #img_id = img_path.split("/")[-1].split(".")[0]
+        final = np.sum(imgs,axis=0)
+        final = 255 * (final > (0.5 * len(imgs)*255))
+
         img_save_path = os.path.join(save_dir,"%d.png"%img_id)
-        # img_save_path = img_path.replace("/dongchengbo", "/chenxinru/VisualSearch").replace(".npy", ".png")
-
-        cv2.imwrite(img_save_path, img)
-    print("mean mean: ", np.mean(mean_list))
-    print("mean std: ", np.mean(std_list))
-    print("mean th: ", np.mean(th_list))
-    return mean_list, std_list
+        cv2.imwrite(img_save_path, final)
+    return 0
 
 
 if __name__ == '__main__':
-    # ori_img_dir = "/data/dongchengbo/test_image"
-    # save_dir = os.path.join("/data/chenxinru/VisualSearch/tianchi_s2/s2_data/output",
-    # "decoder_b3_256_4loss_stride4_mean_1.5std_1", "images")
-    ori_img_dir = opt.ori_img_dir
-    save_dir = opt.save_dir + '_%.2f'%opt.th
-
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    save_dir = '../../prediction_result/images'
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+    os.makedirs(save_dir,exist_ok=True)
     print("save dir ", save_dir)
 
-    #img_paths = ["%s/%d.npy" % (ori_img_dir, i) for i in range(1, 1501)]
-    # img_paths = []
-    # for root, dirs, files in os.walk(ori_img_dir):
-    #     # print(files)
-    #     for f in files:
-    #         img_paths.append(os.path.join(root, f))
-    # print("test len ", len(img_paths))
-    img_paths = [each for each in opt.ori_img_dir]
-    mean_list, std_list = post_process(img_paths, save_dir, True, opt.th)
+    config_names = [each for each in opt.config_name]
+    img_paths = ['../../user_data/temp_npy/%s'%each for each in config_names]
+    # img_paths = [
+    #     '/data/dongchengbo/tianchi_draw/deeplab_res_512_stride8_1.234',
+    #     '/data/dongchengbo/tianchi_draw/deeplab_res_512_stride8_1.234_512s16',
+    #     '/data/dongchengbo/tianchi_draw/res320_660',
+    #     '/data/dongchengbo/tianchi_draw/res320wc_ha_randomcrop_0.55',
+    #     '/data/dongchengbo/tianchi_draw/res320_best1.194_448'
+    # ]
 
-
-
-
+    post_process(img_paths, save_dir, True, opt.vote_th, opt.avg_th)
+    for each in img_paths:
+        shutil.rmtree(each)

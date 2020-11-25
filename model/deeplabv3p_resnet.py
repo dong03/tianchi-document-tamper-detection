@@ -196,7 +196,7 @@ class ASPP_module(nn.Module):
 
 
 class DeepLabv3_plus_res101(nn.Module):
-    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True, cc=0, ela=0):
+    def __init__(self, nInputChannels=3, out_channels=1, os=16, pretrained=False, _print=True, ela=0):
 
         super(DeepLabv3_plus_res101, self).__init__()
         self.ela = ela
@@ -213,9 +213,6 @@ class DeepLabv3_plus_res101(nn.Module):
             rates = [1, 12, 24, 36]
         else:
             raise NotImplementedError
-        self.cc = cc
-        if self.cc:
-            self.criss_cross = CrissCrossAttention(2048)
 
         self.aspp1 = ASPP_module(2048, 256, rate=rates[0])
         self.aspp2 = ASPP_module(2048, 256, rate=rates[1])
@@ -248,6 +245,7 @@ class DeepLabv3_plus_res101(nn.Module):
             print("Number of classes: {}".format(out_channels))
             print("Output stride: {}".format(os))
             print("Number of Input Channels: {}".format(nInputChannels))
+
     def SRMLayer(self):
         q = [4.0, 12.0, 2.0]
         filter1 = [[0, 0, 0, 0, 0],
@@ -270,7 +268,6 @@ class DeepLabv3_plus_res101(nn.Module):
         filter3 = np.asarray(filter3, dtype=float) / q[2]
         filters = np.asarray(
             [[filter1, filter1, filter1], [filter2, filter2, filter2], [filter3, filter3, filter3]])  # shape=(3,3,5,5)
-        # filters = np.transpose(filters, (2,3,1,0)) #shape=(5,5,3,3)
         filters = torch.from_numpy(filters.astype(np.float32))
         filters = nn.Parameter(filters,requires_grad=False)
         return filters
@@ -280,8 +277,7 @@ class DeepLabv3_plus_res101(nn.Module):
             srm = F.conv2d(input, self.filters, bias=None, stride=1, padding=2, dilation=1, groups=1)
             input = torch.cat((input,srm),dim=1)
         x, low_level_features = self.resnet_features(input)
-        if self.cc:
-            x = self.criss_cross(x)
+
         x1 = self.aspp1(x)
         x2 = self.aspp2(x)
         x3 = self.aspp3(x)
