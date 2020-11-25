@@ -248,6 +248,7 @@ class DeepLabv3_plus_res101(nn.Module):
             print("Number of classes: {}".format(out_channels))
             print("Output stride: {}".format(os))
             print("Number of Input Channels: {}".format(nInputChannels))
+
     def SRMLayer(self):
         q = [4.0, 12.0, 2.0]
         filter1 = [[0, 0, 0, 0, 0],
