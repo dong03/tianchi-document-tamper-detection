@@ -3,6 +3,7 @@ train:
     val_path: /data/dongchengbo/VisualSearch/tianchi_s2/s2_data/data/select_val_ori.txt
     batchSize: 128
     imageSize: 320
+    stride: 8
     lr: 0.001
     outf: /data/dongchengbo/tianchi_checkpoints
     writer_root: /data/dongchengbo/tianchi_output

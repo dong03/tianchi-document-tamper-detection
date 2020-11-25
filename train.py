@@ -11,7 +11,7 @@ import argparse
 from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,ReconstructionLoss
 from dataset import DeepFakeClassifierDataset, WholeDataset
 from torch.utils.data import DataLoader
-from utils import str2bool
+from utils import str2bool, update_global
 from train_tools import run_iter, inference_single, run_validation
 import cv2
 import pdb
@@ -53,7 +53,9 @@ if __name__ == "__main__":
     f = open(opt.config, 'r', encoding='utf-8')
     config = yaml.load(f.read())
     print(config)
+    update_global(int(config["train"]["imageSize"]), int(config["train"]["stride"]))
 
+    ## TODO
     if opt.gpu_id != -1:
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)

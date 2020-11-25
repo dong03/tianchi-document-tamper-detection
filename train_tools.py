@@ -33,7 +33,7 @@ def run_model(model, inputs):
     return output
 
 
-def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64,conf=None):
+def inference_single(fake_img, model, th=0.25, remove=True, batch_size=64):
     model.eval()
     with torch.no_grad():
         padded_img = pad_img(fake_img, big_size=max_anchors_size, small_size=min_anchors_size)
@@ -98,7 +98,7 @@ def run_validation(val_img_list, val_mask_list, model, model_savedir, config, ep
 
 
 def run_iter(model, data_loader, epoch, loss_funcs,
-             config, board_num, writer=None, optimizer=None, scheduler=None, device=torch.device('cuda')):
+             config, board_num, writer=None, optimizer=None, scheduler=None):
     count = 0
     loss_bce_sum, loss_focal_sum, loss_dice_sum, loss_rect_sum = 0.0, 0.0, 0.0, 0.0
 
@@ -111,8 +111,8 @@ def run_iter(model, data_loader, epoch, loss_funcs,
             optimizer.zero_grad()
 
         small_img, small_mask, lab = data
-        small_img = small_img.reshape((-1,small_img.shape[-3],small_img.shape[-2],small_img.shape[-1]))
-        small_mask = small_mask.reshape((-1,small_mask.shape[-3],small_mask.shape[-2],small_mask.shape[-1]))
+        small_img = small_img.reshape((-1, small_img.shape[-3], small_img.shape[-2], small_img.shape[-1]))
+        small_mask = small_mask.reshape((-1, small_mask.shape[-3], small_mask.shape[-2], small_mask.shape[-1]))
         lab = lab.reshape(-1).float()
 
         small_img = small_img.cuda()
@@ -125,17 +125,17 @@ def run_iter(model, data_loader, epoch, loss_funcs,
         fake_ix = lab > 0.5
         real_ix = lab < 0.5
 
-        loss_bce =  int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_bce  = int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
         loss_dice = int(config["train"]["loss_type"][1]) * dice_loss_fn(seg, small_mask)
         loss_focal= int(config["train"]["loss_type"][2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
         loss_rect = int(config["train"]["loss_type"][3]) * rect_loss_fn(seg, small_mask)
 
-        temp_loss = [loss_bce.cpu().detach(),loss_dice.cpu().detach(),loss_focal.cpu().detach(),loss_rect.cpu().detach()]
-        temp_loss = [1-int(torch.sum(torch.isnan(each)) or each<0) for each in temp_loss]
+        temp_loss = [loss_bce.cpu().detach(), loss_dice.cpu().detach(), loss_focal.cpu().detach(), loss_rect.cpu().detach()]
+        temp_loss = [1-int(torch.sum(torch.isnan(each)) or each < 0) for each in temp_loss]
         if debug and 0 in temp_loss:
             pdb.set_trace()
         else:
-            loss_total = awl(temp_loss[0] * loss_bce, temp_loss[1] * loss_dice, temp_loss[2] * loss_focal,temp_loss[3]*loss_rect)
+            loss_total = awl(temp_loss[0] * loss_bce, temp_loss[1] * loss_dice, temp_loss[2] * loss_focal, temp_loss[3]*loss_rect)
 
         if optimizer is not None:
             if str2bool(config["train"]["fp16"]):
@@ -158,7 +158,7 @@ def run_iter(model, data_loader, epoch, loss_funcs,
                                 "loss_dice": loss_dice.item() if not isinstance(loss_dice, int) else loss_dice,
                                 "loss_rect": loss_rect.item(),
                                 "total_loss": loss_total.item(),
-                               }, board_num)
+                                }, board_num)
             board_num += 1
         
         loss_bce_sum += loss_bce.item()
