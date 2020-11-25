@@ -20,13 +20,20 @@ class WholeDataset(Dataset):
                  normalize={"mean": [0.485, 0.456, 0.406],
                             "std": [0.229, 0.224, 0.225]},
                  transforms=None,
+                 random_crop=False,
+                 hard_aug=False
                  ):
         super().__init__()
         self.normalize = normalize
+        self.random_crop = random_crop
         self.transforms = transforms
         self.lenth = len(self.img_list)
         self.pad_img = pad_img
         self.cut_bbox = cut_bbox
+        if hard_aug:
+            self.aug_prob = 0.5
+        else:
+            self.aug_prob = 0.1
         self.img_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['img']]
         self.mask_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['mask']]
         self.book_ix = [ix for ix in range(len(self.mask_base)) if np.max(self.mask_base[ix]) == 0]
@@ -82,7 +89,7 @@ class WholeDataset(Dataset):
     def load(self,img_ix, small_ix, big_ix):
         img = self.img_base[img_ix]
         mask = self.mask_base[img_ix]
-        if random.random() < 0.5 and self.transforms:
+        if random.random() < sekf.aug_prob and self.transforms:
             data = self.transforms(image=img,mask=mask)
             img = data["image"]
             mask = data['mask']
@@ -106,7 +113,8 @@ class WholeDataset(Dataset):
         img_ix, small_ix, big_ix = self.real_ix[safe_ix]
         s_img, s_mask = self.load(img_ix, small_ix, big_ix)
         real_lb = 0
-        if img_ix in self.book_ix:
+
+        if self.random_crop and img_ix in self.book_ix:
             if random.random() < 0.7:
                 w = random.randint(32,120)
                 h = random.randint(32,120)

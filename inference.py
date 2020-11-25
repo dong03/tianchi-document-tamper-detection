@@ -33,22 +33,15 @@ f = open("../config/%s.yaml"%opt.config_name, 'r', encoding='utf-8')
 config = yaml.load(f.read())
 
 
-test_dir = config.test_dir
-#TODO 增加临时文件存储路径
-save_dir = config.save_dir
-model_path = "%s/%s"%('model_dir',config.model_name)
-batchsize = config.batchsize
-save_path = "%s/%s"%(config.save_dir,config.model_name)
+test_dir = "../../s2_data/data/test"
+model_path = "%s/%s"%('../../user_data/model_data',config['test']['model_name'])
+save_path = "%s/%s"%('../../user_data/temp_npy',config['test']['model_name'])
+batchsize = config['test']['batchsize']
 
 
 if os.path.exists(save_path):
     shutil.rmtree(save_path)
 os.makedirs(save_path,exist_ok=True)
-
-params = vars(opt)
-params_file = os.path.join(save_path, 'params.json')
-with open(params_file, 'w') as fp:
-    json.dump(params, fp, indent=4)
 
 img_list = ["%s/%d.jpg" % (test_dir, i) for i in range(1,1501)]
 
@@ -57,10 +50,10 @@ transform_pil = transforms.Compose([
     transforms.ToPILImage(),
 ])
 
+#TODO ela放到config中
 model = DeepLabv3_plus_res101(out_channels=1,
                               pretrained=True,
-                              cc=int('cc' in config["train"]["prefix"]),
-                              ela=int('ela' in config["train"]["prefix"]))
+                              ela=config['test']['ela']),
 
 if os.path.exists(opt.resume):
     checkpoint = torch.load(model_path, map_location='cpu')

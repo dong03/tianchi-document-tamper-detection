@@ -9,7 +9,7 @@ from model.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
 import argparse
 from loss import SegmentationLoss,SegFocalLoss,AutomaticWeightedLoss,DiceLoss,ReconstructionLoss
-from dataset import DeepFakeClassifierDataset, WholeDataset
+from dataset import WholeDataset
 from torch.utils.data import DataLoader
 from utils import str2bool
 from train_tools import run_iter, inference_single, run_validation
@@ -31,17 +31,9 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 # parser.add_argument('--lr', type=float, default=1e-3, help='learning rate, default=0.01')
 parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
 parser.add_argument('--resume', type=str, default='none', help="choose a epochs to resume from (0 to train from scratch)")
-# parser.add_argument('--outf', default='/data/dongchengbo/tianchi_checkpoints', help='folder to output images and model checkpoints')
-# parser.add_argument('--prefix', type=str, required=True)
-# parser.add_argument('--th', type=float, default=0.25)
-# parser.add_argument('--remove', type=int, default=0)
 parser.add_argument('--manualSeed', type=int, default=-1)
 parser.add_argument('--niter', type=int, default=1000)
 parser.add_argument('--gpu_num', type=int, default=1)
-parser.add_argument("--local_rank", type=int, default=0)
-# parser.add_argument("--aug", type=int, default=1)
-# parser.add_argument("--loss_type", type=str, default='1111')
-# parser.add_argument("--fp16", type=int, default=1)
 parser.add_argument("--config", type=str, default="config/res_320.yaml")
 
 torch.backends.cudnn.benchmark = True
@@ -59,10 +51,6 @@ if __name__ == "__main__":
         os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)
     elif opt.gpu_num > 1:
         pass
-        # torch.distributed.init_process_group(backend="nccl")
-        # local_rank = torch.distributed.get_rank()
-        # torch.cuda.set_device(local_rank)
-        # device = torch.device("cuda", local_rank)
     if opt.manualSeed == -1:
         opt.manualSeed = random.randint(1, 10000)
 
@@ -165,7 +153,6 @@ if __name__ == "__main__":
         model = nn.DataParallel(model)
     elif opt.gpu_num > 1:
         model = nn.DataParallel(model)
-        # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[local_rank],output_device=local_rank)
     bce_loss_fn.cuda()
     focal_loss_fn.cuda()
     dice_loss_fn.cuda()

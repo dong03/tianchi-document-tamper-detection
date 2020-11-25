@@ -62,14 +62,14 @@ def post_process(img_paths, save_dir, remove, th_vote, th_avg):
 
 
 if __name__ == '__main__':
-    save_dir = '../prediction_result/images'
+    save_dir = '../../prediction_result/images'
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
     os.makedirs(save_dir,exist_ok=True)
     print("save dir ", save_dir)
 
     config_names = [each for each in opt.config_name]
-    img_paths = ['../user_data/temp_npy/%s'%each for each in config_names]
+    img_paths = ['../../user_data/temp_npy/%s'%each for each in config_names]
     # img_paths = [
     #     '/data/dongchengbo/tianchi_draw/deeplab_res_512_stride8_1.234',
     #     '/data/dongchengbo/tianchi_draw/deeplab_res_512_stride8_1.234_512s16',
