@@ -4,6 +4,7 @@
 
 + Ubuntu 16.04.6 LTS
 + Python 3.6
++ cuda10.1+cudnn7.6.3
 
 ## Requirement
 + 安装 nvidia-apex, 详见 https://github.com/NVIDIA/apex  并确保在code目录下
@@ -12,7 +13,14 @@
 
 ## Introduction
 ###数据处理
+
 ###模型结构
+
+当作分割任务
+模型主体采用deeplabv3-plus, backbone:resnet101 (详见https://github.com/MLearing/Pytorch-DeepLab-v3-plus)
+
+考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核，forward时生成3通道噪声图，并与原始图片拼接为6通道，作为输入(可选)
+
 ###训练策略
 
 ## Usage
