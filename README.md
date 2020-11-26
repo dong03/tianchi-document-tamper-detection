@@ -4,6 +4,7 @@
 
 + Ubuntu 16.04.6 LTS
 + Python 3.6
++ cuda10.1+cudnn7.6.3
 
 ## Requirement
 + 安装 nvidia-apex, 详见 https://github.com/NVIDIA/apex  并确保在code目录下
@@ -12,16 +13,19 @@
 
 ## Introduction
 ###数据处理
-训练集数据均经过滑窗分patch预处理作为模型输入，预处理参数例如patch大小、滑窗步长等超参数见./code/config下的config文件。
+鉴于目标篡改区域于全图相比面积可能较小，训练集数据均经过滑窗分patch预处理作为模型输入，预处理参数例如patch大小、滑窗步长等超参数见./code/config下的config文件。
 
-涉及如下数据增强策略：
+训练策略涉及如下数据增强策略：
 1) 图像压缩、图像翻转等常见数据增强策略，增强代码见./code/train/transforms.py。可在./code/config中改变aug参数选择是否采用该策略，同时可改变hard_aug参数选择是否采用高概率数据增强进行模型训练。
 2) 随机拼接图片块，增强代码见./code/train/dataset.py。可在./code/config中改变random_crop参数选择是否采用该策略。
 
 ###模型结构
-采用DeepLabv3_plus_res101作为backbone，可在./code/config中改变ela参数选择是否增加固定参数的SRM层对输入数据进行预先处理。
+当作分割任务
+模型主体采用deeplabv3-plus, backbone:resnet101 (详见https://github.com/MLearing/Pytorch-DeepLab-v3-plus)
 
-###训练策略
+考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核，forward时生成3通道噪声图，并与原始图片拼接为6通道作为输入。可在./code/config中改变ela参数选择是否采用该策略。
+![img-srm](https://images.gitee.com/uploads/images/2020/1126/183406_22693a27_5469175.png "img_srm.png")
+### 训练策略
 
 ## Usage
 ### Test
