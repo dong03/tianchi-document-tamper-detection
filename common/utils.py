@@ -8,15 +8,20 @@ import collections
 import sys
 import logging
 import pdb
-from common import glob as glb
+from common.glob import _global_dict, update_glob
 cv2.ocl.setUseOpenCL(False)
 cv2.setNumThreads(0)
 
-anchors = glb.get_value['anchors']
-max_anchors_size = glb.get_value['max_anchors_size']
-min_anchors_size = glb.get_value['min_anchors_size']
-stride = glb.get_value['stride']
-
+# anchors = glb.get_value('anchors')
+# max_anchors_size = glb.get_value('max_anchors_size')
+# min_anchors_size = glb.get_value('min_anchors_size')
+# stride = glb.get_value('stride')
+update_glob()
+print("from utils ", _global_dict)
+anchors = _global_dict['anchors']
+max_anchors_size = _global_dict['max_anchors_size']
+min_anchors_size = _global_dict['min_anchors_size']
+stride = _global_dict['stride']
 
 
 def update_global(config, type='train'):
@@ -158,7 +163,7 @@ def patches2img(patches, ori_h, ori_w, ps=min_anchors_size):
 
 def pad_img(img, big_size=max_anchors_size, small_size=min_anchors_size):
     import pdb
-    pdb.set_trace()
+    # pdb.set_trace()
     height, width, chan = img.shape
     left_up = (big_size - small_size) // 2
     new_h = (height // small_size + 1) * small_size + (big_size-small_size)//2
