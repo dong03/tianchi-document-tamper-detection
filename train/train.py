@@ -16,7 +16,7 @@ from tensorboardX import SummaryWriter
 from apex import amp
 from common.utils import str2bool, update_global
 from common.transforms import create_train_transforms
-from common.train_tools import run_iter, run_validation
+from common.tools import run_iter, run_validation
 from common.deeplabv3p_resnet import DeepLabv3_plus_res101
 from train.dataset import WholeDataset
 from train.schedulers import create_optimizer,default_scheduler

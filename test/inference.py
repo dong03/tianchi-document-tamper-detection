@@ -13,7 +13,7 @@ from common.deeplabv3p_resnet import DeepLabv3_plus_res101
 import torch.utils.data
 import torchvision.transforms as transforms
 import argparse
-from common.train_tools import inference_single
+from common.tools import inference_single
 import cv2
 import yaml
 
