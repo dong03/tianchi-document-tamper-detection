@@ -24,7 +24,9 @@
 模型主体采用[deeplabv3-plus](https://github.com/MLearing/Pytorch-DeepLab-v3-plus), backbone:resnet101
 ,模型输出为1通道-同尺寸的map,数值越接近1即该像素被篡改概率越大
 
-考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核, forward时生成3通道噪声图, 并与原始图片拼接为6通道作为输入。可在./code/config中改变ela参数选择是否采用该策略。
+考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核, forward时生成3通道噪声图, 并与原始图片拼接为6通道作为输入。
+
+可在./code/config中改变ela参数选择是否采用该策略。
 ![img-srm](https://images.gitee.com/uploads/images/2020/1126/183406_22693a27_5469175.png "img_srm.png")
 ### 训练策略
 1. 采用4项损失函数
