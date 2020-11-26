@@ -9,6 +9,7 @@ from albumentations import Compose, RandomBrightnessContrast, \
 from albumentations.pytorch.functional import img_to_tensor
 import torch
 
+
 def isotropically_resize_image(img, size, interpolation_down=cv2.INTER_AREA, interpolation_up=cv2.INTER_CUBIC):
     h, w = img.shape[:2]
     if max(w, h) == size:
@@ -116,7 +117,6 @@ def create_train_transforms():
                ], p=0.7),
     ]
     )
-
 
 
 def direct_val(imgs):
