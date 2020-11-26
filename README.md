@@ -12,7 +12,15 @@
 
 ## Introduction
 ###数据处理
+训练集数据均经过滑窗分patch预处理作为模型输入，预处理参数例如patch大小、滑窗步长等超参数见./code/config下的config文件。
+
+涉及如下数据增强策略：
+1) 图像压缩、图像翻转等常见数据增强策略，增强代码见./code/train/transforms.py。可在./code/config中改变aug参数选择是否采用该策略，同时可改变hard_aug参数选择是否采用高概率数据增强进行模型训练。
+2) 随机拼接图片块，增强代码见./code/train/dataset.py。可在./code/config中改变random_crop参数选择是否采用该策略。
+
 ###模型结构
+采用DeepLabv3_plus_res101作为backbone，可在./code/config中改变ela参数选择是否增加固定参数的SRM层对输入数据进行预先处理。
+
 ###训练策略
 
 ## Usage
