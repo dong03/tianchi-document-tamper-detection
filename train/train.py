@@ -18,13 +18,14 @@ from common.utils import str2bool, update_global
 from common.transforms import create_train_transforms
 from common.tools import run_iter, run_validation
 from common.deeplabv3p_resnet import DeepLabv3_plus_res101
+from common import glob as glb
 from train.dataset import WholeDataset
 from train.schedulers import create_optimizer,default_scheduler
 from train.loss import SegmentationLoss, SegFocalLoss, AutomaticWeightedLoss, DiceLoss, ReconstructionLoss
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
 parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
 parser.add_argument('--manualSeed', type=int, default=-1)
 parser.add_argument('--gpu_num', type=int, default=1)
@@ -36,13 +37,14 @@ torch.backends.cudnn.benchmark = True
 if __name__ == "__main__":
     opt = parser.parse_args()
     print(opt)
-    if not os.path.exists("./config/%s.yaml" % opt.config):
-        print("./config/%s.yaml not found." % opt.config)
+    if not os.path.exists("../config/%s.yaml" % opt.config):
+        print("../config/%s.yaml not found." % opt.config)
         exit()
-    f = open("./config/%s.yaml" % opt.config, 'r', encoding='utf-8')
+    f = open("../config/%s.yaml" % opt.config, 'r', encoding='utf-8')
     config = yaml.load(f.read())
     print(config)
-    update_global(config, 'train')
+    glb._init()
+    glb.update_config(config)
 
     if opt.gpu_id != -1:
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'

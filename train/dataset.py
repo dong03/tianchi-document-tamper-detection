@@ -22,7 +22,6 @@ class WholeDataset(Dataset):
         self.normalize = normalize
         self.random_crop = random_crop
         self.transforms = transforms
-        self.lenth = len(self.img_list)
         self.pad_img = pad_img
         self.cut_bbox = cut_bbox
         if hard_aug:

@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0,'..')
 import cv2
 import time
 import numpy as np
@@ -6,14 +8,15 @@ import collections
 import sys
 import logging
 import pdb
-
+from common import glob as glb
 cv2.ocl.setUseOpenCL(False)
 cv2.setNumThreads(0)
 
-anchors = [(544, 544), (512, 512)]
-max_anchors_size = 544
-min_anchors_size = 512
-stride = 16
+anchors = glb.get_value['anchors']
+max_anchors_size = glb.get_value['max_anchors_size']
+min_anchors_size = glb.get_value['min_anchors_size']
+stride = glb.get_value['stride']
+
 
 
 def update_global(config, type='train'):
@@ -83,6 +86,7 @@ def small2big(sub_anchor, big_box_size):
 def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_anchors_size)//2):
     global stride
     np.seterr(divide='ignore', invalid='ignore')
+    print("current stride:", stride,"max anchors", max_anchors_size)
     if pad:
         img = pad_img(img, ps)
     new_h, new_w = img.shape[:2]
@@ -153,6 +157,8 @@ def patches2img(patches, ori_h, ori_w, ps=min_anchors_size):
 
 
 def pad_img(img, big_size=max_anchors_size, small_size=min_anchors_size):
+    import pdb
+    pdb.set_trace()
     height, width, chan = img.shape
     left_up = (big_size - small_size) // 2
     new_h = (height // small_size + 1) * small_size + (big_size-small_size)//2

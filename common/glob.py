@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 def _init():  # 初始化
     global _global_dict
     _global_dict = {}
@@ -20,3 +18,6 @@ def update_global(config):
 
 def get_value(key, defValue=None):
     return _global_dict[key]
+
+if __name__ == "__main__":
+    pass
