@@ -29,11 +29,11 @@ if opt.gpu_id != -1:
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
     os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)
 
-f = open("./config/%s.yaml" % opt.config_name, 'r', encoding='utf-8')
+f = open("../config/%s.yaml" % opt.config_name, 'r', encoding='utf-8')
 config = yaml.load(f.read())
 update_global(config, 'test')
 test_dir = config['path']['test_dir']
-model_path = os.path.join(config['path']['model_dir'], config['model_name'], 'model_best.pt')
+model_path = config['path']['resume_path']
 save_path = os.path.join(config['path']['save_dir'], config['model_name'])
 batchsize = int(config['test']['batchSize'])
 
@@ -49,11 +49,9 @@ transform_pil = transforms.Compose([
     transforms.ToPILImage(),
 ])
 
-model = DeepLabv3_plus_res101(out_channels=1,
-                              pretrained=True,
-                              ela=int(config['test']['ela'])),
+model = DeepLabv3_plus_res101(out_channels=1,pretrained=True,ela=int(config['test']['ela']))
 
-if os.path.exists(opt.resume):
+if os.path.exists(model_path):
     checkpoint = torch.load(model_path, map_location='cpu')
     model.load_state_dict({re.sub("^module.", "", k): v for k, v in checkpoint['model_dict'].items()}, strict=True)
     model.eval()

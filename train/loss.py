@@ -104,7 +104,7 @@ class DiceLoss(nn.Module):
 class AutomaticWeightedLoss(nn.Module):
     """automatically weighted multi-task loss
     Params：
-        num: int，the number of loss
+        num: int,the number of loss
         x: multi-task loss
     Examples：
         loss1=1

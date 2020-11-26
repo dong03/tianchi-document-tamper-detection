@@ -23,10 +23,6 @@ from train.schedulers import create_optimizer,default_scheduler
 from train.loss import SegmentationLoss, SegFocalLoss, AutomaticWeightedLoss, DiceLoss, ReconstructionLoss
 
 
-
-
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
 parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')

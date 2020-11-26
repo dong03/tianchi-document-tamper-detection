@@ -1,19 +1,20 @@
 model_name: model4
 describe: res320_stride8_hardaug_randomcrop_ela_newlist
 path:
-    test_dir: ../s2_data/data/test
-    model_dir: ../user_data/model_data
-    save_dir: ../user_data/temp_npy
+    test_dir: ../../s2_data/data/test
+    model_dir: ../../user_data/model_data
+    save_dir: ../../user_data/temp_npy
+    resume_path : ../../user_data/model_data/model_best.pt_bak_0.55
 
 train:
-    train_path: ../user_data/data_index/select_train_ori.txt
-    val_path: ../user_data/data_index/select_val_ori.txt
+    train_path: ../../user_data/data_index/select_train_ori.txt
+    val_path: ../../user_data/data_index/select_val_ori.txt
     batchSize: 128
     imageSize: 320
     stride: 8
     lr: 0.001
-    outf: ../user_data/model_data
-    writer_root: ../user_data/tensorlog
+    outf: ../../user_data/model_data
+    writer_root: ../../user_data/tensorlog
     th: 0.25
     remove: 0
     aug: 1
