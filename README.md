@@ -9,6 +9,12 @@
 + 安装 nvidia-apex, 详见 https://github.com/NVIDIA/apex  并确保在code目录下
 + pip install requirements.txt
 
+
+## Introduction
+###数据处理
+###模型结构
+###训练策略
+
 ## Usage
 ### Test
 ```
@@ -44,32 +50,3 @@ bash train.sh
 其中,gpu_id和gpu_num的要求与Test一致
 
 其余参数请自行在./code/config的config文件中修改
-Change following in run_train.sh
-```
-data_path, run_id, config_name, train_collection, val_collection, test_collection
-```
-Then run 
-```bash 
-bash run_train.sh gpu_id additional_description
-e.g. bash run_train.sh 0 Vfinetune
-```
-### Prediction
-for img: 
-
-```bash
-bash run_pred_img.sh gpu_id if_submision
-e.g. bash run_pred_img.sh 0 1 
-```
-for video:
-```bash
-bash run_pred_video.sh 0
-```
-To use pretrained models, get them from 
-
-链接：https://pan.baidu.com/s/1fepyjxcCn6zyorAlQyvTQg 提取码：i1v9
-
-and change model path in run_pred_xx.sh
-### Visualization (via gradcam)  
-```bash
-bash run_gradcam.sh gpu_id
-```
