@@ -7,23 +7,24 @@
 + cuda10.1+cudnn7.6.3
 
 ## Requirement
-+ 安装 nvidia-apex, 详见 https://github.com/NVIDIA/apex  并确保在code目录下
++ 安装 [nvidia-apex](https://github.com/NVIDIA/apex)
+, 并确保在code目录下
 + pip install requirements.txt
 
 
 ## Introduction
 ###数据处理
-鉴于目标篡改区域于全图相比面积可能较小，训练集数据均经过滑窗分patch预处理作为模型输入，预处理参数例如patch大小、滑窗步长等超参数见./code/config下的config文件。
+鉴于目标篡改区域于全图相比面积可能较小, 训练集数据均经过滑窗分patch预处理作为模型输入, 预处理参数例如patch大小、滑窗步长等超参数见./code/config下的config文件。
 
 训练策略涉及如下数据增强策略：
-1) 图像压缩、图像翻转等常见数据增强策略，增强代码见./code/train/transforms.py。可在./code/config中改变aug参数选择是否采用该策略，同时可改变hard_aug参数选择是否采用高概率数据增强进行模型训练。
-2) 随机拼接图片块，增强代码见./code/train/dataset.py。可在./code/config中改变random_crop参数选择是否采用该策略。
+1) 图像压缩、图像翻转等常见数据增强策略, 增强代码见./code/train/transforms.py。可在./code/config中改变aug参数选择是否采用该策略, 同时可改变hard_aug参数选择是否采用高概率数据增强进行模型训练。
+2) 随机拼接图片块, 增强代码见./code/train/dataset.py。可在./code/config中改变random_crop参数选择是否采用该策略。
 
 ###模型结构
-当作分割任务
-模型主体采用deeplabv3-plus, backbone:resnet101 (详见https://github.com/MLearing/Pytorch-DeepLab-v3-plus)
+模型主体采用[deeplabv3-plus](https://github.com/MLearing/Pytorch-DeepLab-v3-plus), backbone:resnet101
+,模型输出为1通道-同尺寸的map,数值越接近1即该像素被篡改概率越大
 
-考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核，forward时生成3通道噪声图，并与原始图片拼接为6通道作为输入。可在./code/config中改变ela参数选择是否采用该策略。
+考虑到篡改部分噪声可能与原图不同,在模型中引入SRM噪声核, forward时生成3通道噪声图, 并与原始图片拼接为6通道作为输入。可在./code/config中改变ela参数选择是否采用该策略。
 ![img-srm](https://images.gitee.com/uploads/images/2020/1126/183406_22693a27_5469175.png "img_srm.png")
 ### 训练策略
 1. 采用4项损失函数
@@ -32,15 +33,16 @@
     + BCELoss
     + FocalLoss
 
-    其中,FocalLoss赋予真实图片对应的mask(全黑)的损失权重高于篡改图片的损失权重，并使用Auto-Weighted-Loss策略设置损失函数的权重
+    其中,FocalLoss赋予真实图片对应的mask(全黑)的损失权重高于篡改图片的损失权重, 并使用Auto-Weighted-Loss策略设置损失函数的权重
 2. 采用学习率衰减的Adam优化器
+3. 使用nvidia-apex半精度训练
 ### 推理策略
 1. 分数映射 
     + 将模型输出的0-1连续值map依据近似sigmoid的策略进行映射, 使分数分布更集中于高分段/低分段, 方差更小
 2. 二值化
-    + 依据预测值方差动态确定二值化阈值，见./code/test/inference.py
+    + 依据预测值方差动态确定二值化阈值, 见./code/test/inference.py
 3. 模型集成
-    + 选择不同参属下训练、推理的结果进行后融合，在二值化后使用Voting策略决定最终结果. 见./code/test/getmean.py
+    + 选择不同参属下训练、推理的结果进行后融合, 在二值化后使用Voting策略决定最终结果. 见./code/test/getmean.py
 
 ## Usage
 ### Test
