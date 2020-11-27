@@ -26,10 +26,10 @@ train:
     niter: 10
     save: 1
     save_step: 1
-    resume: none
+    resume: 0
 
 test:
-    batchSize: 128
+    batchSize: 512
     imageSize: 320
     stride: 8
     fp16: 1

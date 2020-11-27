@@ -36,7 +36,11 @@ if __name__ == '__main__':
         shutil.rmtree(save_path)
     os.makedirs(save_path, exist_ok=True)
 
-    img_list = ["%s/%d.jpg" % (test_dir, i) for i in range(1, 1501)]
+    img_list = []
+    for root, _ , files in os.walk(test_dir):
+        for file in files:
+            if '.jpg' or '.png' in file:
+                img_list.append(os.path.join(root, file))
 
     cudnn.benchmark = False
     transform_pil = transforms.Compose([

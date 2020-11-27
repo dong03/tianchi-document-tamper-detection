@@ -74,5 +74,5 @@ if __name__ == '__main__':
     img_paths = ['../../user_data/temp_npy/%s'%each for each in config_names]
 
     post_process(img_paths, save_dir, True, opt.vote_th, opt.avg_th)
-    for each in img_paths:
-        shutil.rmtree(each)
+    # for each in img_paths:
+    #     shutil.rmtree(each)
