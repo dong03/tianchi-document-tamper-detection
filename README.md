@@ -53,6 +53,7 @@ python3 inference.py --gpu_id 0 --config model5 --gpu_num 1 --config_type test
 python getmean.py --avg_th 1.35 --vote_th 0.3 --config_name model1 model2 model3 model4 model5
 ```
 
+如显存不够, 可在config文件中修改'test'-'batchsize',注意此处batchsize并非一次处理的图片数量,请保证不要太小.
 
 ### Train
 ```
