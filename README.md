@@ -2,8 +2,8 @@
 
 ## Environment
 
-+ Ubuntu 16.04.6 LTS
-+ Python 3.6
++ Ubuntu 18.04.3 LTS
++ Python 3.6.9
 + cuda10.1+cudnn7.6.3
 
 ## Requirement
