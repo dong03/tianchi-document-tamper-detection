@@ -14,37 +14,34 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
 from apex import amp
-from common.utils import str2bool, update_global
+
 from common.transforms import create_train_transforms
 from common.tools import run_iter, run_validation
 from common.deeplabv3p_resnet import DeepLabv3_plus_res101
-from common import glob as glb
+from common.glob import opt
 from train.dataset import WholeDataset
 from train.schedulers import create_optimizer,default_scheduler
 from train.loss import SegmentationLoss, SegFocalLoss, AutomaticWeightedLoss, DiceLoss, ReconstructionLoss
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
-parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
-parser.add_argument('--manualSeed', type=int, default=-1)
-parser.add_argument('--gpu_num', type=int, default=1)
-parser.add_argument("--config", type=str, default="model1")
-
 torch.backends.cudnn.benchmark = True
 
 
+def str2bool(in_str):
+    if in_str in [1,"1", "t", "True", "true"]:
+        return True
+    elif in_str in [0,"0", "f", "False", "false", "none"]:
+        return False
+
+
 if __name__ == "__main__":
-    opt = parser.parse_args()
-    print(opt)
+    print(":in the head of train", opt)
     if not os.path.exists("../config/%s.yaml" % opt.config):
         print("../config/%s.yaml not found." % opt.config)
         exit()
     f = open("../config/%s.yaml" % opt.config, 'r', encoding='utf-8')
-    config = yaml.load(f.read())
+    config = yaml.load(f.read(), Loader=yaml.FullLoader)
     print(config)
-    glb._init()
-    glb.update_config(config)
 
     if opt.gpu_id != -1:
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -95,10 +92,10 @@ if __name__ == "__main__":
         train_img_list = f.readlines()
     with open(config["train"]["val_path"], 'r') as f:
         val_img_list = f.readlines()
-    val_img_list = [each.strip("\n") for each in val_img_list]
-    val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list]
-    train_img_list = [each.strip("\n") for each in train_img_list]
-    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list]
+    val_img_list = [each.strip("\n") for each in val_img_list][:10]
+    val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list][:10]
+    train_img_list = [each.strip("\n") for each in train_img_list][:10]
+    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
 
     print("len train img list: ", len(train_img_list))
     print("len val img list: ", len(val_img_list))
@@ -127,24 +124,26 @@ if __name__ == "__main__":
     optimizer, scheduler = create_optimizer(optimizer_config=default_scheduler, model=model, awl=awl)
     max_iters = default_scheduler["schedule"]['params']['max_iter']
 
-    if os.path.exists(opt.resume):
-        checkpoint = torch.load(opt.resume, map_location='cpu')
+    if str2bool(config["train"]["resume"]):
+        checkpoint = torch.load(config["path"]["resume_path"], map_location='cpu')
         model.load_state_dict({re.sub("^module.", "", k): v for k, v in checkpoint['model_dict'].items()})
         model.train(mode=True)
         awl.load_state_dict(checkpoint['awl'])
         start_epoch = checkpoint['epoch']
         board_num = checkpoint['board_num'] + 1
-        print("load %s finish" % (os.path.basename(opt.resume)))
+        print("load %s finish" % (os.path.basename(config["path"]["resume_path"])))
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model.cuda()
-    if opt.gpu_num > 1 and str2bool(config["train"]["fp16"]):
+    if str2bool(config["train"]["fp16"]):
         assert opt.gpu_num == torch.cuda.device_count()
         amp.register_float_function(torch, 'sigmoid')
         model, optimizer = amp.initialize(model, optimizer, opt_level='O1', loss_scale='dynamic')
+    if opt.gpu_num > 1 and opt.gpu_id == -1:
         model = nn.DataParallel(model)
-    elif opt.gpu_num > 1:
-        model = nn.DataParallel(model)
+    elif opt.gpu_num > 1 and opt.gpu_id != -1:
+        print("gpu_num and gpu_id not correct")
+        sys.exit()
 
     bce_loss_fn.cuda()
     focal_loss_fn.cuda()

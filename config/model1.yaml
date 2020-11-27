@@ -9,7 +9,7 @@ path:
 train:
     train_path: ../../user_data/data_index/train_list.txt
     val_path: ../../user_data/data_index/val_list.txt
-    batchSize: 128
+    batchSize: 64
     imageSize: 512
     stride: 8
     lr: 0.001

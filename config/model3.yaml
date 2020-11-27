@@ -9,7 +9,7 @@ path:
 train:
     train_path: ../../user_data/data_index/train_list.txt
     val_path: ../../user_data/data_index/val_list.txt
-    batchSize: 128
+    batchSize: 100
     imageSize: 320
     stride: 8
     lr: 0.001
@@ -26,7 +26,7 @@ train:
     niter: 10
     save: 1
     save_step: 1
-    resume: none
+    resume: 0
 
 test:
     batchSize: 128

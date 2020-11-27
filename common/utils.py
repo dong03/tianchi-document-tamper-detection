@@ -8,26 +8,20 @@ import collections
 import sys
 import logging
 import pdb
-from common import glob as glb
+from common.glob import _global_dict, update_glob
 cv2.ocl.setUseOpenCL(False)
 cv2.setNumThreads(0)
 
-anchors = glb.get_value['anchors']
-max_anchors_size = glb.get_value['max_anchors_size']
-min_anchors_size = glb.get_value['min_anchors_size']
-stride = glb.get_value['stride']
-
-
-
-def update_global(config, type='train'):
-    global anchors
-    global max_anchors_size
-    global min_anchors_size
-    global stride
-    max_anchors_size = int(config[type]['imageSize'])
-    min_anchors_size = int(config[type]['imageSize'])
-    stride = int(config[type]['stride'])
-    anchors = [(max_anchors_size, max_anchors_size), (min_anchors_size, min_anchors_size)]
+# anchors = glb.get_value('anchors')
+# max_anchors_size = glb.get_value('max_anchors_size')
+# min_anchors_size = glb.get_value('min_anchors_size')
+# stride = glb.get_value('stride')
+update_glob()
+print("from utils ", _global_dict)
+anchors = _global_dict['anchors']
+max_anchors_size = _global_dict['max_anchors_size']
+min_anchors_size = _global_dict['min_anchors_size']
+stride = _global_dict['stride']
 
 
 logger = logging.getLogger(__file__)
@@ -38,9 +32,9 @@ logging.basicConfig(
 
 
 def str2bool(in_str):
-    if in_str in ["1", "t", "True", "true"]:
+    if in_str in [1,"1", "t", "True", "true"]:
         return True
-    elif in_str in ["0", "f", "False", "false"]:
+    elif in_str in [0,"0", "f", "False", "false"]:
         return False
 
 
@@ -86,7 +80,6 @@ def small2big(sub_anchor, big_box_size):
 def img2patches(img, ps=min_anchors_size, pad=True, shift=(max_anchors_size-min_anchors_size)//2):
     global stride
     np.seterr(divide='ignore', invalid='ignore')
-    print("current stride:", stride,"max anchors", max_anchors_size)
     if pad:
         img = pad_img(img, ps)
     new_h, new_w = img.shape[:2]
@@ -158,7 +151,7 @@ def patches2img(patches, ori_h, ori_w, ps=min_anchors_size):
 
 def pad_img(img, big_size=max_anchors_size, small_size=min_anchors_size):
     import pdb
-    pdb.set_trace()
+    # pdb.set_trace()
     height, width, chan = img.shape
     left_up = (big_size - small_size) // 2
     new_h = (height // small_size + 1) * small_size + (big_size-small_size)//2

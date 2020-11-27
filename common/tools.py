@@ -122,11 +122,11 @@ def run_iter(model, data_loader, epoch, loss_funcs, config, optimizer=None, sche
 
         fake_ix = lab > 0.5
         real_ix = lab < 0.5
-
-        loss_bce  = int(config["train"]["loss_type"][0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
-        loss_dice = int(config["train"]["loss_type"][1]) * dice_loss_fn(seg, small_mask)
-        loss_focal= int(config["train"]["loss_type"][2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
-        loss_rect = int(config["train"]["loss_type"][3]) * rect_loss_fn(seg, small_mask)
+        loss_type = str(config["train"]["loss_type"])
+        loss_bce  = int(loss_type[0]) * bce_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_dice = int(loss_type[1]) * dice_loss_fn(seg, small_mask)
+        loss_focal= int(loss_type[2]) * focal_loss_fn(seg, small_mask, real_ix, fake_ix)
+        loss_rect = int(loss_type[3]) * rect_loss_fn(seg, small_mask)
 
         temp_loss = [loss_bce.cpu().detach(), loss_dice.cpu().detach(), loss_focal.cpu().detach(), loss_rect.cpu().detach()]
         temp_loss = [1-int(torch.sum(torch.isnan(each)) or each < 0) for each in temp_loss]
