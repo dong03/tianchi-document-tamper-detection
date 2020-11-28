@@ -5,7 +5,6 @@ import numpy as np
 from tqdm import tqdm
 import os
 import shutil
-from common.utils import remove_small
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -15,6 +14,14 @@ parser.add_argument('--config_name',nargs='+', type=str, required=True)
 opt = parser.parse_args()
 print(opt)
 
+
+def remove_small(img):
+    contours, _ = cv2.findContours(img.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    for i, cnt in enumerate(contours):
+        if cnt.shape[0] / (img.shape[0] * img.shape[1]) < 6e-5 or cnt.shape[0] < 36:
+            for ix in range(cnt.shape[0]):
+                img[cnt[ix][0][1], cnt[ix][0][0]] = 0
+    return img
 
 def get_th(img, th_std):
     img_flatten = img.flatten()

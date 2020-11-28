@@ -29,7 +29,7 @@ train:
     resume: 0
 
 test:
-    batchSize: 512
+    batchSize: 320
     imageSize: 512
     stride: 16
     fp16: 1

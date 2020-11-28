@@ -31,9 +31,6 @@ if __name__ == '__main__':
     save_path = os.path.join(config['path']['save_dir'], config['model_name'])
     batchsize = int(config['test']['batchSize'])
 
-
-    if os.path.exists(save_path):
-        shutil.rmtree(save_path)
     os.makedirs(save_path, exist_ok=True)
 
     img_list = []
@@ -69,6 +66,9 @@ if __name__ == '__main__':
     with torch.no_grad():
         progbar = Progbar(len(img_list), stateful_metrics=['epoch', 'config', 'lr'])
         for ix, (img_path) in enumerate(img_list):
+            if os.path.exists(os.path.join(save_path, os.path.split(img_path)[-1].split('.')[0] + '.npy')):
+                progbar.add(1, values=[('epoch', 0)])
+                continue
             img = cv2.imread(img_path)
             seg = inference_single(fake_img=img, model=model, th=0, remove=False, batch_size=batchsize)
             np.save(os.path.join(save_path, os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
