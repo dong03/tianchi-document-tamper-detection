@@ -28,8 +28,19 @@ class WholeDataset(Dataset):
             self.aug_prob = 0.5
         else:
             self.aug_prob = 0.1
-        self.img_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['img']]
-        self.mask_base = [self.pad_img(cv2.imread(each),max_anchors_size,min_anchors_size) for each in annotations['mask']]
+        self.img_base = [cv2.imread(each) for each in annotations['img']]
+        self.mask_base = [cv2.imread(each) for each in annotations['mask']]
+
+        self.img_base = [cv2.resize(img,(
+        int(img.shape[1] * 1024.0 / min(img.shape[:2])), int(img.shape[0] * 1024.0 / min(img.shape[:2])))) for img in
+                         self.img_base]
+        self.mask_base = [cv2.resize(img, (
+        int(img.shape[1] * 1024.0 / min(img.shape[:2])), int(img.shape[0] * 1024.0 / min(img.shape[:2])))) for img in
+                         self.mask_base]
+        print(self.mask_base[-1].shape)
+        self.img_base = [self.pad_img(img, max_anchors_size, min_anchors_size) for img in self.img_base]
+        self.mask_base = [self.pad_img(img, max_anchors_size, min_anchors_size) for img in self.mask_base]
+
         self.book_ix = [ix for ix in range(len(self.mask_base)) if np.max(self.mask_base[ix]) == 0]
         self.fake_ix, self.real_ix  = [], []
         for img_ix, (img, mask) in tqdm(enumerate(zip(self.img_base,self.mask_base))):

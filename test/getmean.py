@@ -37,6 +37,9 @@ def get_th(img, th_std):
 
 def post_process(img_paths, save_dir, remove, th_vote, th_avg):
     for img_id in tqdm(range(1,1501)):
+        img_save_path = os.path.join(save_dir, "%d.png" % img_id)
+        if os.path.exists(img_save_path):
+            continue
         imgs = []
         ori_imgs = []
         for each_path in img_paths:
@@ -65,7 +68,6 @@ def post_process(img_paths, save_dir, remove, th_vote, th_avg):
         final = np.sum(imgs,axis=0)
         final = 255 * (final > (0.5 * len(imgs)*255))
 
-        img_save_path = os.path.join(save_dir,"%d.png"%img_id)
         cv2.imwrite(img_save_path, final)
     return 0
 

@@ -107,7 +107,6 @@ def run_iter(model, data_loader, epoch, loss_funcs, config, optimizer=None, sche
     for data in data_loader:
         if optimizer is not None:
             optimizer.zero_grad()
-
         small_img, small_mask, lab = data
         small_img = small_img.reshape((-1, small_img.shape[-3], small_img.shape[-2], small_img.shape[-1]))
         small_mask = small_mask.reshape((-1, small_mask.shape[-3], small_mask.shape[-2], small_mask.shape[-1]))

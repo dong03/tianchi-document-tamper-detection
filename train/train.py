@@ -6,7 +6,6 @@ import json
 import yaml
 import shutil
 import random
-import argparse
 import torch.nn as nn
 import torch.utils.data
 import torch.backends.cudnn as cudnn
@@ -92,10 +91,18 @@ if __name__ == "__main__":
         train_img_list = f.readlines()
     with open(config["train"]["val_path"], 'r') as f:
         val_img_list = f.readlines()
-    val_img_list = [each.strip("\n") for each in val_img_list][:10]
-    val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list][:10]
-    train_img_list = [each.strip("\n") for each in train_img_list][:10]
-    train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
+    train_img_list = [each.strip("\n") for each in train_img_list]
+    train_mask_list = [each.replace("/tampered", "/mask")[:-4] + "_gt.png" for each in train_img_list]
+
+    val_img_list = train_img_list[int(0.7*len(train_img_list)):]
+    val_mask_list = train_mask_list[int(0.7 * len(train_img_list)):]
+
+    train_img_list = train_img_list[:int(0.7*len(train_img_list))]
+    train_mask_list = train_mask_list[:int(0.7 * len(train_img_list))]
+    # val_img_list = [each.strip("\n") for each in val_img_list][:10]
+    # val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list][:10]
+    # train_img_list = [each.strip("\n") for each in train_img_list][:10]
+    # train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
 
     print("len train img list: ", len(train_img_list))
     print("len val img list: ", len(val_img_list))
@@ -115,6 +122,7 @@ if __name__ == "__main__":
         pin_memory=True,
         shuffle=True,
         drop_last=True)
+
 
     print("train_set size: %d,%d | val_set size: %d" % (len(data_train), len(train_data_loader), len(val_img_list)))
 

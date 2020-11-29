@@ -1,0 +1,36 @@
+model_name: model_normal
+describe: res320_stride8_hardaug_randomcrop_noela
+path:
+    test_dir: ../../s2_data/data/test
+    model_dir: ../../user_data/model_data
+    save_dir: ../../user_data/temp_npy
+    resume_path : none
+
+train:
+    train_path: /data/dongchengbo/Casiav2_small_img.txt
+    val_path: /data/dongchengbo/Casiav2_small_img.txt
+    batchSize: 112
+    imageSize: 320
+    stride: 8
+    lr: 0.001
+    outf: ../../user_data/model_data
+    writer_root: ../../user_data/tensorlog
+    th: 0.25
+    remove: 1
+    aug: 1
+    loss_type: 1111
+    fp16: 1
+    ela: 0
+    random_crop: 1
+    hard_aug: 1
+    niter: 15
+    save: 1
+    save_step: 2
+    resume: 0
+
+test:
+    batchSize: 512
+    imageSize: 16
+    stride: 8
+    fp16: 1
+    ela: 0
