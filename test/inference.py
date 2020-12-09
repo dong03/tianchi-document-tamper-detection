@@ -20,9 +20,11 @@ import yaml
 
 if __name__ == '__main__':
     print("in the head of inference:", opt)
-    if opt.gpu_id != -1:
-        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)
+    used_gpu = [str(each) for each in opt.gpu_id]
+    used_gpu = ','.join(used_gpu)
+
+    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+    os.environ["CUDA_VISIBLE_DEVICES"] = used_gpu
 
     f = open("../config/%s.yaml" % opt.config, 'r', encoding='utf-8')
     config = yaml.load(f.read())
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     if str2bool(config["test"]["fp16"]):
         amp.register_float_function(torch, 'sigmoid')
         model = amp.initialize(models=model, opt_level='O1', loss_scale='dynamic')
-    if opt.gpu_num > 1:
+    if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
     model.eval()
 
@@ -70,6 +72,8 @@ if __name__ == '__main__':
                 progbar.add(1, values=[('epoch', 0)])
                 continue
             img = cv2.imread(img_path)
-            seg = inference_single(fake_img=img, model=model, th=0, remove=False, batch_size=batchsize)
+            img = cv2.resize(img, (int(img.shape[1] * 512.0 / min(img.shape[:2])), int(img.shape[0] * 512.0 / min(img.shape[:2]))))
+            seg = inference_single(fake_img=img, model=model, th=0.25, remove=True, batch_size=batchsize)
+            #cv2.imwrite(os.path.join(save_path, os.path.split(img_path)[-1].split('.')[0] + '.jpg'),seg.astype(np.uint8))
             np.save(os.path.join(save_path, os.path.split(img_path)[-1].split('.')[0] + '.npy'), seg.astype(np.uint8))
             progbar.add(1, values=[('epoch', 0)])

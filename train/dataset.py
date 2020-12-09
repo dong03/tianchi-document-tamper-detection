@@ -31,15 +31,15 @@ class WholeDataset(Dataset):
         self.img_base = [cv2.imread(each) for each in annotations['img']]
         self.mask_base = [cv2.imread(each) for each in annotations['mask']]
 
-        self.img_base = [cv2.resize(img,(
-        int(img.shape[1] * 1024.0 / min(img.shape[:2])), int(img.shape[0] * 1024.0 / min(img.shape[:2])))) for img in
-                         self.img_base]
-        self.mask_base = [cv2.resize(img, (
-        int(img.shape[1] * 1024.0 / min(img.shape[:2])), int(img.shape[0] * 1024.0 / min(img.shape[:2])))) for img in
-                         self.mask_base]
-        print(self.mask_base[-1].shape)
+        # self.img_base = [cv2.resize(img,(
+        # int(img.shape[1] * 840.0 / min(img.shape[:2])), int(img.shape[0] * 840.0 / min(img.shape[:2])))) for img in
+        #                  self.img_base]
+        # self.mask_base = [cv2.resize(mask, (
+        # int(mask.shape[1] * 840.0 / min(mask.shape[:2])), int(mask.shape[0] * 840.0 / min(mask.shape[:2])))) for mask in
+        #                  self.mask_base]
+        # print(self.mask_base[-1].shape)
         self.img_base = [self.pad_img(img, max_anchors_size, min_anchors_size) for img in self.img_base]
-        self.mask_base = [self.pad_img(img, max_anchors_size, min_anchors_size) for img in self.mask_base]
+        self.mask_base = [self.pad_img(mask, max_anchors_size, min_anchors_size) for mask in self.mask_base]
 
         self.book_ix = [ix for ix in range(len(self.mask_base)) if np.max(self.mask_base[ix]) == 0]
         self.fake_ix, self.real_ix  = [], []
@@ -47,8 +47,10 @@ class WholeDataset(Dataset):
             fake_small_ix, fake_big_ix,real_small_ix,real_big_ix = self.gen_ix(img,mask)
             for ix in range(len(fake_small_ix)):
                 self.fake_ix.append((img_ix, fake_small_ix[ix],fake_big_ix[ix]))
-            for ix in range(len(real_small_ix)):
-                self.real_ix.append((img_ix, real_small_ix[ix],real_big_ix[ix]))
+            if np.max(mask) == 0:
+                for ix in range(len(real_small_ix)):
+                    self.real_ix.append((img_ix, real_small_ix[ix],real_big_ix[ix]))
+
         random.shuffle(self.fake_ix)
         random.shuffle(self.real_ix)
 

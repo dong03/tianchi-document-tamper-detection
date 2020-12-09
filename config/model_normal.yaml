@@ -4,13 +4,14 @@ path:
     test_dir: ../../s2_data/data/test
     model_dir: ../../user_data/model_data
     save_dir: ../../user_data/temp_npy
-    resume_path : none
+    resume_path : /data/dongchengbo/submit/user_data/model_data/model_normal/model_6.pt
+    test_path: /data/dongchengbo/id_card_train_data/step1.txt
 
 train:
-    train_path: /data/dongchengbo/Casiav2_small_img.txt
-    val_path: /data/dongchengbo/Casiav2_small_img.txt
-    batchSize: 112
-    imageSize: 320
+    train_path: /data/dongchengbo/id_card_train_data/step2_train.txt
+    val_path: /data/dongchengbo/id_card_train_data/step2_val.txt
+    batchSize: 224
+    imageSize: 256
     stride: 8
     lr: 0.001
     outf: ../../user_data/model_data
@@ -22,15 +23,15 @@ train:
     fp16: 1
     ela: 0
     random_crop: 1
-    hard_aug: 1
+    hard_aug: 0
     niter: 15
-    save: 1
-    save_step: 2
-    resume: 0
+    step_save: 1
+    save_step: 1
+    resume: 1
 
 test:
-    batchSize: 512
-    imageSize: 16
+    batchSize: 224
+    imageSize: 256
     stride: 8
     fp16: 1
     ela: 0

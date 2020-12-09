@@ -42,22 +42,22 @@ if __name__ == "__main__":
     config = yaml.load(f.read(), Loader=yaml.FullLoader)
     print(config)
 
-    if opt.gpu_id != -1:
-        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu_id)
-    elif opt.gpu_num > 1:
-        pass
+    used_gpu = [str(each) for each in opt.gpu_id]
+    used_gpu = ','.join(used_gpu)
+    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+    os.environ["CUDA_VISIBLE_DEVICES"] = used_gpu
+
     if opt.manualSeed == -1:
         opt.manualSeed = random.randint(1, 10000)
 
-    model_savedir = os.path.join(config["train"]["outf"], config["model_name"])
+    model_savedir = os.path.join(config["train"]["outf"], config["model_name"], "run_%d"%opt.run_id)
     os.makedirs(model_savedir, exist_ok=True)
     params = vars(opt)
     params_file = os.path.join(model_savedir, 'params.json')
     with open(params_file, 'w') as fp:
         json.dump(params, fp, indent=4)
 
-    writer_dir = os.path.join(config["train"]["writer_root"], config["model_name"])
+    writer_dir = os.path.join(config["train"]["writer_root"], config["model_name"],"run_%d"%opt.run_id)
 
     if os.path.exists(writer_dir):
         shutil.rmtree(writer_dir, ignore_errors=True)
@@ -92,17 +92,11 @@ if __name__ == "__main__":
     with open(config["train"]["val_path"], 'r') as f:
         val_img_list = f.readlines()
     train_img_list = [each.strip("\n") for each in train_img_list]
-    train_mask_list = [each.replace("/tampered", "/mask")[:-4] + "_gt.png" for each in train_img_list]
+    train_mask_list = [each.replace("/images", "/mask") for each in train_img_list]
 
-    val_img_list = train_img_list[int(0.7*len(train_img_list)):]
-    val_mask_list = train_mask_list[int(0.7 * len(train_img_list)):]
+    val_img_list = [each.strip("\n") for each in val_img_list]
+    val_mask_list = [each.replace("/images", "/mask") for each in val_img_list]
 
-    train_img_list = train_img_list[:int(0.7*len(train_img_list))]
-    train_mask_list = train_mask_list[:int(0.7 * len(train_img_list))]
-    # val_img_list = [each.strip("\n") for each in val_img_list][:10]
-    # val_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in val_img_list][:10]
-    # train_img_list = [each.strip("\n") for each in train_img_list][:10]
-    # train_mask_list = [each.replace("/train", "/train_mask").replace(".jpg", ".png") for each in train_img_list][:10]
 
     print("len train img list: ", len(train_img_list))
     print("len val img list: ", len(val_img_list))
@@ -138,7 +132,7 @@ if __name__ == "__main__":
         model.train(mode=True)
         awl.load_state_dict(checkpoint['awl'])
         start_epoch = checkpoint['epoch']
-        board_num = checkpoint['board_num'] + 1
+        board_num = 1
         print("load %s finish" % (os.path.basename(config["path"]["resume_path"])))
 
     print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -147,11 +141,8 @@ if __name__ == "__main__":
         assert opt.gpu_num == torch.cuda.device_count()
         amp.register_float_function(torch, 'sigmoid')
         model, optimizer = amp.initialize(model, optimizer, opt_level='O1', loss_scale='dynamic')
-    if opt.gpu_num > 1 and opt.gpu_id == -1:
+    if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
-    elif opt.gpu_num > 1 and opt.gpu_id != -1:
-        print("gpu_num and gpu_id not correct")
-        sys.exit()
 
     bce_loss_fn.cuda()
     focal_loss_fn.cuda()
@@ -174,7 +165,6 @@ if __name__ == "__main__":
             torch.save({
                 'epoch': epoch,
                 'model_dict': model.state_dict(),
-                'optim_dict': optimizer.state_dict(),
                 'awl': awl.state_dict()
             }, os.path.join(model_savedir, 'model_%d.pt' % epoch))
         model.eval()
@@ -187,7 +177,6 @@ if __name__ == "__main__":
                 torch.save({
                     'epoch': epoch,
                     'model_dict': model.state_dict(),
-                    'optim_dict': optimizer.state_dict(),
                     'awl': awl.state_dict(),
                     'best_score': best_score,
                 }, os.path.join(model_savedir, 'model_best.pt'))
