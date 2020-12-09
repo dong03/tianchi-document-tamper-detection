@@ -78,6 +78,9 @@ def run_validation(val_img_list, val_mask_list, model, model_savedir, config, ep
         for ix, (img_path, mask_path) in enumerate(zip(val_img_list, val_mask_list)):
             img = cv2.imread(img_path)
             mask = cv2.imread(mask_path, 0)
+            img = cv2.resize(img,(int(img.shape[1] * 512.0 / min(img.shape[:2])), int(img.shape[0] * 512.0 / min(img.shape[:2]))))
+            mask = cv2.resize(mask, (img.shape[1],img.shape[0]))
+
             seg = inference_single(fake_img=img, model=model, th=float(config["train"]["th"]),
                                    remove=str2bool(config["train"]["remove"]),
                                    batch_size=int(config["train"]["batchSize"]))

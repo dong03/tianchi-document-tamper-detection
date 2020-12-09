@@ -9,6 +9,7 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--gpu_id', type=int, default=-1, help='GPU ID')
 parser.add_argument('--manualSeed', type=int, default=-1)
 parser.add_argument('--gpu_num', type=int, default=1)
+parser.add_argument('--run_id', type=int, default=0)
 opt = parser.parse_args()
 
 _global_dict = {}
